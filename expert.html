@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Expert Panel | Electra Man</title>
 <link rel="stylesheet" href="styles.css">
+<script src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'></script>
 </head>
 <body>
 
@@ -356,6 +357,28 @@ document.getElementById("btnSubmitApp").onclick = async () => {
   }
 
   try {
+    showToast("CNIC scan ho raha hai, please wait...", "info");
+    
+    // OCR Verification for CNIC Front Image
+    const worker = await Tesseract.createWorker('eng');
+    const ret = await worker.recognize(cnicFrontFile);
+    await worker.terminate();
+    
+    const scannedText = ret.data.text.replace(/-/g, '');
+    const cleanTypedCnic = cnic.replace(/-/g, '');
+
+    // Check if CNIC number matches
+    if (!scannedText.includes(cleanTypedCnic)) {
+      showToast("Error: Upload ki gayi CNIC front image ka number aapke entered CNIC se match nahi ho raha!", "error");
+      return;
+    }
+    
+    // Check if Name matches
+    if (!scannedText.toLowerCase().includes(name.toLowerCase())) {
+      showToast("Warning: Name match nahi hua, please clear image upload karein.", "error");
+      return;
+    }
+
     showToast("Images process ho rahi hain, please wait...", "info");
     
     // Convert files to base64
