@@ -234,7 +234,6 @@ window.findElectricians = function () {
   `}).join("");
 };
 
-// DIRECT CHAT OPEN (No Token Fee Check)
 window.startChat = function (expert) {
   selectedExpert = expert;
   openChatUI(expert);
@@ -344,7 +343,6 @@ function renderMyBookings() {
   }).join("");
 }
 
-// Live location functions
 function normalizeProvinceName(stateName) {
   if (!stateName) return null;
   const s = stateName.toLowerCase();
