@@ -131,6 +131,47 @@
   <div id="myAvailabilityPill" style="margin-bottom:16px;"></div>
   <div class="stat-grid" id="statGrid"></div>
 
+  <!-- Wallet & Payout Request Section -->
+  <div class="panel" style="margin-bottom:20px;">
+    <div class="section-title">Earnings & Payouts</div>
+    <div class="section-sub">Completed jobs ka balance yahan show hota hai. Payout request bhej kar balance withdraw karein.</div>
+    
+    <div style="display:flex; justify-content:space-between; align-items:center; background:var(--charcoal-2); padding:16px; border-radius:8px; margin-top:10px;">
+      <div>
+        <span style="font-size:0.85rem; color:var(--muted);">Available Balance</span>
+        <div style="font-size:1.6rem; font-weight:700; color:var(--success);" id="expertBalanceDisplay">Rs. 0</div>
+      </div>
+      <button class="btn btn-sm" id="btnOpenPayoutModal">Request Payout</button>
+    </div>
+
+    <!-- Payout Modal/Form -->
+    <div id="payoutFormArea" style="display:none; margin-top:16px; padding:16px; border:1px solid var(--border); border-radius:8px; background:var(--charcoal-1);">
+      <div style="font-weight:700; margin-bottom:8px;">Withdraw Funds</div>
+      <div class="field-row">
+        <div class="field">
+          <label>Payment Method</label>
+          <select id="poMethod">
+            <option value="JazzCash">JazzCash</option>
+            <option value="Easypaisa">Easypaisa</option>
+            <option value="Bank Transfer">Bank Transfer</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Account Number</label>
+          <input type="text" id="poAccount" placeholder="03XXXXXXXXX">
+        </div>
+      </div>
+      <div class="field" style="margin-top:8px;">
+        <label>Amount (PKR)</label>
+        <input type="number" id="poAmount" placeholder="Enter amount">
+      </div>
+      <div style="display:flex; gap:10px; margin-top:12px;">
+        <button class="btn btn-sm btn-success" id="btnSubmitPayout">Submit Request</button>
+        <button class="btn btn-sm btn-outline" id="btnCancelPayout">Cancel</button>
+      </div>
+    </div>
+  </div>
+
   <div class="panel" style="margin-bottom:20px;">
     <div class="section-title">Incoming Job Requests</div>
     <div class="section-sub">Confirmed bookings from customers appear here — updates live across devices.</div>
@@ -165,11 +206,12 @@
 import {
   LOCATIONS, SCREENING_QUESTIONS, genApplicationId, genExpertId,
   listenApplications, listenExperts, listenBookings,
-  setApplicationDoc, setExpertDoc, updateApplicationDoc, updateBookingDoc,
+  setApplicationDoc, setExpertDoc, updateApplicationDoc, updateBookingDoc, updateExpertDoc,
   listenExpertChats, listenChatMessages, sendChatMessage,
   getActiveBookingForExpert, EXPERT_QUICK_REPLIES, genOtp
 } from "./shared-data.js";
 import { showToast } from "./toast.js";
+import { db, collection, addDoc } from "./firebase-init.js";
 
 let applicationsCache = [];
 let expertsCache = [];
@@ -179,15 +221,10 @@ let activeExpertId = null;
 let activeChatCustomerId = null;
 let chatMsgUnsub = null;
 
-listenApplications(list => { 
-  applicationsCache = list; 
-  checkStatus(); 
-});
-
+listenApplications(list => { applicationsCache = list; checkStatus(); });
 listenExperts(
   list => {
-    expertsCache = list; 
-    renderDashboard();
+    expertsCache = list; renderDashboard();
     const badge = document.getElementById("fbStatus");
     if (badge) { badge.textContent = "🟢 Live — Firebase Connected"; badge.style.color = "var(--success)"; }
   },
@@ -196,7 +233,6 @@ listenExperts(
     if (badge) { badge.textContent = "🔴 Firebase Connection Error — " + err.message; badge.style.color = "var(--danger)"; }
   }
 );
-
 listenBookings(list => { bookingsCache = list; renderDashboard(); });
 
 function showView(id) {
@@ -225,7 +261,6 @@ Object.keys(LOCATIONS).forEach(p => {
   opt.value = p; opt.textContent = p;
   apProvinceSelect.appendChild(opt);
 });
-
 apProvinceSelect.addEventListener("change", () => {
   const cityInput = document.getElementById("apCity");
   const cityList = document.getElementById("apCityList");
@@ -294,35 +329,23 @@ document.getElementById("btnSubmitApp").onclick = async () => {
 
 function checkStatus() {
   const appId = localStorage.getItem("electraman_my_application_id");
-  if (!appId) {
-    showView("entryView");
-    return;
-  }
-  
+  if (!appId) return;
   const app = applicationsCache.find(a => a.id === appId);
-  
-  // Clean up invalid or fake IDs from local storage
-  if (!app && applicationsCache.length > 0) {
-    localStorage.removeItem("electraman_my_application_id");
-    showView("entryView");
-    return;
-  }
+  if (!app) return;
 
-  if (app) {
-    if (app.status === "pending") {
-      document.getElementById("myAppId").textContent = app.id;
-      showView("underReviewView");
-    } else if (app.status === "rejected") {
-      showView("rejectedView");
-    } else if (app.status === "approved") {
-      if (app.gigPublished) {
-        activeExpertId = app.expertId;
-        showView("dashView");
-        renderDashboard();
-        subscribeExpertChats();
-      } else {
-        showView("gigBuilderView");
-      }
+  if (app.status === "pending") {
+    document.getElementById("myAppId").textContent = app.id;
+    showView("underReviewView");
+  } else if (app.status === "rejected") {
+    showView("rejectedView");
+  } else if (app.status === "approved") {
+    if (app.gigPublished) {
+      activeExpertId = app.expertId;
+      showView("dashView");
+      renderDashboard();
+      subscribeExpertChats();
+    } else {
+      showView("gigBuilderView");
     }
   }
 }
@@ -338,7 +361,7 @@ document.getElementById("btnPublishGig").onclick = async () => {
 
   await setExpertDoc(newId, {
     id: newId, name: app.name, province: app.province, city: app.city,
-    specialty: title, rating: 5.0, jobs: 0, verified: true, description: desc
+    specialty: title, rating: 5.0, jobs: 0, verified: true, description: desc, balance: 0
   });
   await updateApplicationDoc(appId, { gigPublished: true, expertId: newId });
 
@@ -356,6 +379,56 @@ document.getElementById("btnLogin").onclick = () => {
   showView("dashView");
   renderDashboard();
   subscribeExpertChats();
+};
+
+// ---- Payout Request Handlers ----
+document.getElementById("btnOpenPayoutModal").onclick = () => {
+  document.getElementById("payoutFormArea").style.display = "block";
+};
+document.getElementById("btnCancelPayout").onclick = () => {
+  document.getElementById("payoutFormArea").style.display = "none";
+};
+
+document.getElementById("btnSubmitPayout").onclick = async () => {
+  const method = document.getElementById("poMethod").value;
+  const account = document.getElementById("poAccount").value.trim();
+  const amount = Number(document.getElementById("poAmount").value);
+  const expert = expertsCache.find(e => e.id === activeExpertId);
+
+  if (!account || !amount || amount <= 0) {
+    showToast("Please valid account details aur amount enter karein.", "error");
+    return;
+  }
+
+  const currentBalance = expert ? (expert.balance || 0) : 0;
+  if (amount > currentBalance) {
+    showToast("Aapka requested amount aapke available balance se zyada hai.", "error");
+    return;
+  }
+
+  try {
+    // 1. Create Payout Request
+    await addDoc(collection(db, "payoutRequests"), {
+      expertId: activeExpertId,
+      expertName: expert ? expert.name : "Unknown Expert",
+      method,
+      account,
+      amount,
+      status: "pending",
+      requestedAt: new Date().toISOString()
+    });
+
+    // 2. Deduct Balance Immediately
+    const newBalance = currentBalance - amount;
+    await updateExpertDoc(activeExpertId, { balance: newBalance });
+
+    showToast("Payout request admin ko bhej di gayi hai!", "success");
+    document.getElementById("payoutFormArea").style.display = "none";
+    document.getElementById("poAccount").value = "";
+    document.getElementById("poAmount").value = "";
+  } catch (err) {
+    showToast("Error: " + err.message, "error");
+  }
 };
 
 function renderChatList() {
@@ -405,7 +478,7 @@ async function sendExpertMessage(text) {
   if (!text || !activeChatCustomerId || !activeExpertId) return;
   const expert = expertsCache.find(e => e.id === activeExpertId);
   try {
-    await sendChatMessage(activeExpertId, activeChatCustomerId, expert ? expert.name : "", "expert", text);
+    await sendChatMessage(activeExpertId, activeChatCustomerId, expert ? expert.name : "", "expert", text, activeExpertId);
   } catch (err) {
     showToast(err.message, "error");
   }
@@ -432,6 +505,7 @@ function renderDashboard() {
   const expert = expertsCache.find(e => e.id === activeExpertId);
   document.getElementById("dashWelcome").textContent = "Welcome back, " + (expert ? expert.name : "");
   document.getElementById("dashSub").textContent = expert ? `${expert.city} · ${expert.specialty}` : "";
+  document.getElementById("expertBalanceDisplay").textContent = `Rs. ${expert ? (expert.balance || 0) : 0}`;
 
   const activeBooking = getActiveBookingForExpert(activeExpertId, bookingsCache);
   const availDiv = document.getElementById("myAvailabilityPill");
@@ -476,31 +550,46 @@ function renderDashboard() {
         </div>
       </div>
     `}).join("");
+    
     list.querySelectorAll("[data-accept]").forEach(btn => {
       btn.onclick = async () => {
         const otp = genOtp();
-        await updateBookingDoc(btn.dataset.accept, { jobStatus: "accepted" });
-        await updateBookingDoc(btn.dataset.accept, { completionOtp: otp });
+        await updateBookingDoc(btn.dataset.accept, { jobStatus: "accepted", completionOtp: otp });
         showToast("Job accept ho gaya. Customer ko unke 'My Bookings' mein completion code dikh raha hai.", "success");
       };
     });
+    
     list.querySelectorAll("[data-decline]").forEach(btn => {
       btn.onclick = () => updateBookingDoc(btn.dataset.decline, { jobStatus: "declined" });
     });
+    
     list.querySelectorAll("[data-verify-otp]").forEach(btn => {
       btn.onclick = async () => {
         const bookingId = btn.dataset.verifyOtp;
         const input = list.querySelector(`[data-otp-input="${bookingId}"]`);
         const entered = input.value.trim();
         const booking = bookingsCache.find(b => b.id === bookingId);
+        
         if (!entered) { showToast("Pehle customer se OTP lein aur likhein.", "error"); return; }
         if (!booking || entered !== booking.completionOtp) {
           showToast("OTP galat hai. Customer se dobara confirm karein.", "error");
           return;
         }
-        await updateBookingDoc(bookingId, { jobStatus: "completed" });
-        await updateBookingDoc(bookingId, { escrowReleased: true });
-        showToast("Kaam complete — payment release ho gayi!", "success");
+
+        // 1. Mark booking completed & release escrow
+        await updateBookingDoc(bookingId, { jobStatus: "completed", escrowReleased: true });
+
+        // 2. Add payment amount to Expert's Wallet Balance & increment completed jobs count
+        const jobAmount = Number(booking.amount) || 0;
+        const currentBalance = expert ? (expert.balance || 0) : 0;
+        const currentJobs = expert ? (expert.jobs || 0) : 0;
+
+        await updateExpertDoc(activeExpertId, {
+          balance: currentBalance + jobAmount,
+          jobs: currentJobs + 1
+        });
+
+        showToast("Kaam complete — payment aapke wallet balance mein add ho gayi!", "success");
       };
     });
   }
@@ -508,11 +597,7 @@ function renderDashboard() {
 
 (function init() {
   const appId = localStorage.getItem("electraman_my_application_id");
-  if (!appId) {
-    showView("entryView");
-  } else {
-    checkStatus();
-  }
+  showView(appId ? "underReviewView" : "entryView");
 })();
 </script>
 </body>
