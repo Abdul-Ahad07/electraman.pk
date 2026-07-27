@@ -113,7 +113,7 @@
   </div>
 </div>
 
-<!-- Token Fee lock modal — small upfront fee required before chat unlocks -->
+<!-- Token Fee lock modal -->
 <div class="modal-overlay" id="tokenModalOverlay">
   <div class="modal">
     <div id="tokenPendingStep">
@@ -183,6 +183,7 @@ listenExperts(
     if (badge) { badge.textContent = "🔴 Firebase Connection Error — " + err.message; badge.style.color = "var(--danger)"; }
   }
 );
+
 listenBookings(list => {
   bookingsCache = list;
   renderMyBookings();
@@ -252,36 +253,29 @@ window.findElectricians = function () {
     const isBooked = !!activeBooking;
     return `
     <div class="expert-card" style="${isBooked ? 'opacity:0.55;' : ''}">
-      <div class="expert-info" style="display:flex; gap:12px; align-items:flex-start;">
-        <div class="avatar" style="flex-shrink:0;">${initials(e.name)}</div>
-        <div style="flex:1; min-width:0;">
-          <div class="expert-header-row" style="display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-bottom:4px;">
-            <b class="expert-name" style="font-size:1.05rem;">${e.name}</b>
-            <span class="badge-verified" style="white-space:nowrap;">✓ Verified</span> 
-            ${isBooked ? '<span class="pill pending" style="white-space:nowrap;">Booked</span>' : '<span class="pill approved" style="white-space:nowrap;">Available</span>'}
-          </div>
-          <div class="expert-meta" style="font-size:0.85rem; color:var(--muted); margin-bottom:12px; word-break:break-word;">
-            ${e.specialty || 'General Electrician'} · ★ ${e.rating || 5.0} · ${e.jobs || 0} jobs completed
-          </div>
-          <div style="display:flex; align-items:center;">
-            ${isBooked
-              ? `<button class="btn btn-sm btn-outline" disabled>Currently Booked</button>`
-              : `<button class="btn btn-sm btn-chat-action" data-expert-id="${e.id}">Chat</button>`
-            }
-          </div>
+      <div class="expert-info">
+        <div class="avatar">${initials(e.name)}</div>
+        <div>
+          <div class="expert-name">${e.name} <span class="badge-verified">✓ Verified</span> ${isBooked ? '<span class="pill pending">Booked</span>' : '<span class="pill approved">Available</span>'}</div>
+          <div class="expert-meta">${e.specialty || 'General Electrician'} · ★ ${e.rating || 5.0} · ${e.jobs || 0} jobs completed</div>
         </div>
+      </div>
+      <div style="display:flex; align-items:center; gap:14px;">
+        ${isBooked
+          ? `<button class="btn btn-sm btn-outline" disabled>Currently Booked</button>`
+          : `<button class="btn btn-sm btn-chat-trigger" data-id="${e.id}">Chat</button>`
+        }
       </div>
     </div>
   `}).join("");
 
-  // Direct Click Event Listener Fix for Chat Buttons
-  resultsDiv.querySelectorAll(".btn-chat-action").forEach(btn => {
-    btn.onclick = () => {
-      const expId = btn.dataset.expertId;
-      const expertObj = matches.find(item => item.id === expId);
-      if (expertObj) {
-        window.startChat(expertObj);
-      }
+  // Event Listeners attached directly to solve string-quote breakage
+  resultsDiv.querySelectorAll(".btn-chat-trigger").forEach(btn => {
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      const expertId = btn.dataset.id;
+      const expObj = matches.find(m => m.id === expertId);
+      if (expObj) window.startChat(expObj);
     };
   });
 };
@@ -291,18 +285,36 @@ let tokenUnsub = null;
 window.startChat = function (expert) {
   selectedExpert = expert;
   if (tokenUnsub) tokenUnsub();
-  tokenUnsub = listenTokenFee(expert.id, myCustomerId, (tokenDoc) => {
-    if (tokenDoc && tokenDoc.status === "verified") {
-      window.closeTokenModal();
-      openChatUI(expert);
-    } else if (tokenDoc && tokenDoc.status === "pending_verification") {
-      showTokenWaitingStep();
-    } else if (tokenDoc && tokenDoc.status === "rejected") {
-      showTokenRejectedStep();
-    } else {
+  
+  let handled = false;
+  const fallbackTimer = setTimeout(() => {
+    if (!handled) {
+      handled = true;
       showTokenPendingStep();
     }
-  });
+  }, 1000);
+
+  try {
+    tokenUnsub = listenTokenFee(expert.id, myCustomerId, (tokenDoc) => {
+      if (handled) return;
+      handled = true;
+      clearTimeout(fallbackTimer);
+      
+      if (tokenDoc && tokenDoc.status === "verified") {
+        window.closeTokenModal();
+        openChatUI(expert);
+      } else if (tokenDoc && tokenDoc.status === "pending_verification") {
+        showTokenWaitingStep();
+      } else if (tokenDoc && tokenDoc.status === "rejected") {
+        showTokenRejectedStep();
+      } else {
+        showTokenPendingStep();
+      }
+    });
+  } catch (err) {
+    clearTimeout(fallbackTimer);
+    showTokenPendingStep();
+  }
 };
 
 function showTokenPendingStep() {
@@ -315,18 +327,21 @@ function showTokenPendingStep() {
   document.getElementById("tokenTxnId").value = "";
   document.getElementById("tokenModalOverlay").classList.add("active");
 }
+
 function showTokenWaitingStep() {
   document.getElementById("tokenPendingStep").style.display = "none";
   document.getElementById("tokenWaitingStep").style.display = "block";
   document.getElementById("tokenRejectedStep").style.display = "none";
   document.getElementById("tokenModalOverlay").classList.add("active");
 }
+
 function showTokenRejectedStep() {
   document.getElementById("tokenPendingStep").style.display = "none";
   document.getElementById("tokenWaitingStep").style.display = "none";
   document.getElementById("tokenRejectedStep").style.display = "block";
   document.getElementById("tokenModalOverlay").classList.add("active");
 }
+
 window.closeTokenModal = function () {
   document.getElementById("tokenModalOverlay").classList.remove("active");
 };
@@ -338,6 +353,7 @@ document.getElementById("btnSubmitToken").onclick = async () => {
   await submitTokenFee(selectedExpert.id, myCustomerId, txnId);
   showTokenWaitingStep();
 };
+
 document.getElementById("btnRetryToken").onclick = () => {
   showTokenPendingStep();
 };
@@ -446,7 +462,7 @@ function renderMyBookings() {
   }).join("");
 }
 
-// ---- Live location ----
+// Location
 function normalizeProvinceName(stateName) {
   if (!stateName) return null;
   const s = stateName.toLowerCase();
@@ -457,6 +473,7 @@ function normalizeProvinceName(stateName) {
   if (s.includes("islamabad")) return "Islamabad";
   return null;
 }
+
 function findClosestCity(province, cityGuess) {
   if (!province || !cityGuess) return null;
   const list = LOCATIONS[province] || [];
