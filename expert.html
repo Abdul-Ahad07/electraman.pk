@@ -51,8 +51,25 @@
 
     <div class="field-row">
       <div class="field"><label>Full Name</label><input type="text" id="apName" placeholder="Muhammad Ali"></div>
-      <div class="field"><label>CNIC</label><input type="text" id="apCnic" placeholder="XXXXX-XXXXXXX-X"></div>
+      <div class="field"><label>CNIC Number</label><input type="text" id="apCnic" placeholder="XXXXX-XXXXXXX-X"></div>
     </div>
+
+    <!-- 📸 CNIC & Live Selfie Verification Upload Section -->
+    <div class="field-row" style="margin-top:10px;">
+      <div class="field">
+        <label>CNIC Front Image</label>
+        <input type="file" id="apCnicFront" accept="image/*">
+      </div>
+      <div class="field">
+        <label>CNIC Back Image</label>
+        <input type="file" id="apCnicBack" accept="image/*">
+      </div>
+    </div>
+    <div class="field" style="margin-bottom:12px;">
+      <label>Live Selfie / Passport Photo</label>
+      <input type="file" id="apSelfie" accept="image/*">
+    </div>
+
     <div class="field-row">
       <div class="field"><label>Phone</label><input type="text" id="apPhone" placeholder="03XX-XXXXXXX"></div>
       <div class="field"><label>Experience (years)</label><input type="text" id="apExp" placeholder="e.g. 4"></div>
@@ -254,6 +271,17 @@ function resetSession() {
   showView("entryView");
 }
 
+// Helper: Convert File to Base64 String
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    if (!file) { resolve(""); return; }
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = error => reject(error);
+  });
+}
+
 // ---- Province/city for application form ----
 const apProvinceSelect = document.getElementById("apProvince");
 Object.keys(LOCATIONS).forEach(p => {
@@ -305,10 +333,21 @@ document.getElementById("btnSubmitApp").onclick = async () => {
   const expYears = document.getElementById("apExp").value.trim();
   const expText = document.getElementById("apExpText").value.trim();
 
+  // File Inputs
+  const cnicFrontFile = document.getElementById("apCnicFront").files[0];
+  const cnicBackFile = document.getElementById("apCnicBack").files[0];
+  const selfieFile = document.getElementById("apSelfie").files[0];
+
   if (!name || !cnic || !phone || !province || !city || !specialty || !expText) {
     showToast("Please sab fields sahi se fill karein (city list mein se select karein).", "error");
     return;
   }
+
+  if (!cnicFrontFile || !cnicBackFile || !selfieFile) {
+    showToast("CNIC Front, Back aur Selfie/Photo attach karna lazmi hai.", "error");
+    return;
+  }
+
   const answers = [];
   for (let i = 0; i < SCREENING_QUESTIONS.length; i++) {
     const picked = document.querySelector(`input[name="q${i}"]:checked`);
@@ -316,15 +355,32 @@ document.getElementById("btnSubmitApp").onclick = async () => {
     answers.push(parseInt(picked.value));
   }
 
-  const id = genApplicationId();
-  await setApplicationDoc(id, {
-    id, name, cnic, phone, province, city, specialty,
-    experienceYears: expYears, answers, experienceText: expText,
-    status: "pending", appliedAt: new Date().toISOString(), gigPublished: false
-  });
-  localStorage.setItem("electraman_my_application_id", id);
-  document.getElementById("myAppId").textContent = id;
-  showView("underReviewView");
+  try {
+    showToast("Images process ho rahi hain, please wait...", "info");
+    
+    // Convert files to base64
+    const cnicFrontBase64 = await fileToBase64(cnicFrontFile);
+    const cnicBackBase64 = await fileToBase64(cnicBackFile);
+    const selfieBase64 = await fileToBase64(selfieFile);
+
+    const id = genApplicationId();
+    await setApplicationDoc(id, {
+      id, name, cnic, phone, province, city, specialty,
+      experienceYears: expYears, answers, experienceText: expText,
+      cnicFront: cnicFrontBase64,
+      cnicBack: cnicBackBase64,
+      selfie: selfieBase64,
+      callVerified: false,
+      adminNotes: "",
+      status: "pending", appliedAt: new Date().toISOString(), gigPublished: false
+    });
+
+    localStorage.setItem("electraman_my_application_id", id);
+    document.getElementById("myAppId").textContent = id;
+    showView("underReviewView");
+  } catch (err) {
+    showToast("Files process karne mein error aaya: " + err.message, "error");
+  }
 };
 
 function checkStatus() {
