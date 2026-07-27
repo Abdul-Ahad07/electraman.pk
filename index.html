@@ -270,10 +270,11 @@ function openChatUI(expert) {
   });
 }
 
+// Updated with customerId parameter for auto-ban tracking
 async function sendRawMessage(text) {
   if (!text || !selectedExpert) return;
   try {
-    await sendChatMessage(selectedExpert.id, myCustomerId, selectedExpert.name, "customer", text);
+    await sendChatMessage(selectedExpert.id, myCustomerId, selectedExpert.name, "customer", text, myCustomerId);
   } catch (err) {
     showToast(err.message, "error");
   }
