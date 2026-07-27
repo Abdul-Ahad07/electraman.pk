@@ -40,33 +40,37 @@
   <div class="stat-grid" id="statGrid"></div>
 
   <div class="tabs">
-    <button class="tab-btn active" data-tab="verify">Expert Applications</button>
-    <button class="tab-btn" data-tab="tokens">Token Verification</button>
+    <button class="tab-btn active" data-tab="payouts">Payout Requests</button>
+    <button class="tab-btn" data-tab="verify">Expert Applications</button>
     <button class="tab-btn" data-tab="payments">Payment Verification</button>
     <button class="tab-btn" data-tab="bookings">All Bookings</button>
     <button class="tab-btn" data-tab="experts">All Experts</button>
   </div>
 
   <div class="panel">
-    <div class="tab-content active" id="tab-verify">
+    <div class="tab-content active" id="tab-payouts">
+      <div class="section-title">Pending Payout Requests</div>
+      <div class="section-sub">Electricians ki balance withdrawal requests check karke manual payment bhejain aur 'Mark as Paid' karein.</div>
+      <div id="payoutsList"></div>
+    </div>
+
+    <div class="tab-content" id="tab-verify">
       <div class="section-title">Pending Expert Applications</div>
       <div class="section-sub">Screening answers, CNIC, aur experience dekh k Approve/Reject karein.</div>
       <div id="verifyList"></div>
     </div>
-    <div class="tab-content" id="tab-tokens">
-      <div class="section-title">Token Fee Verification</div>
-      <div class="section-sub">Chat unlock karne se pehle client ka chhota upfront Token Fee verify karein.</div>
-      <div id="tokensList"></div>
-    </div>
+
     <div class="tab-content" id="tab-payments">
       <div class="section-title">Payment Verification (Manual — Till/QR)</div>
       <div class="section-sub">Client ka bheja hua Transaction ID JazzCash/Easypaisa app mein check karke confirm karein.</div>
       <div id="paymentsList"></div>
     </div>
+
     <div class="tab-content" id="tab-bookings">
       <div class="section-title">All Bookings</div>
       <div id="bookingsList"></div>
     </div>
+
     <div class="tab-content" id="tab-experts">
       <div class="section-title">Registered Experts</div>
       <div id="expertsList"></div>
@@ -88,16 +92,15 @@ window.addEventListener("unhandledrejection", (e) => {
 
 import {
   SCREENING_QUESTIONS, listenApplications, listenExperts, listenBookings,
-  updateApplicationDoc, updateBookingDoc,
-  listenAllTokenFees, updateTokenFeeDoc
+  updateApplicationDoc, updateBookingDoc
 } from "./shared-data.js";
-import { auth, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail } from "./firebase-init.js";
+import { auth, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail, db, collection, onSnapshot, doc, updateDoc } from "./firebase-init.js";
 import { showToast } from "./toast.js";
 
 let applications = [];
 let experts = [];
 let bookings = [];
-let tokenFees = [];
+let payoutRequests = [];
 
 try {
 
@@ -114,7 +117,12 @@ listenExperts(
   }
 );
 listenBookings(list => { bookings = list; renderAll(); });
-listenAllTokenFees(list => { tokenFees = list; renderAll(); });
+
+// Realtime Listener for Payout Requests
+onSnapshot(collection(db, "payoutRequests"), (snapshot) => {
+  payoutRequests = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+  renderAll();
+});
 
 document.getElementById("btnAdminLogin").onclick = async () => {
   const email = document.getElementById("adminUser").value.trim();
@@ -179,15 +187,47 @@ function renderStats() {
   const verifiedExperts = experts.filter(e => e.verified).length;
   const pending = applications.filter(a => a.status === "pending").length;
   const totalBookings = bookings.length;
-  const pendingTokens = tokenFees.filter(t => t.status === "pending_verification").length;
+  const pendingPayouts = payoutRequests.filter(p => p.status === "pending").length;
 
   document.getElementById("statGrid").innerHTML = `
+    <div class="stat-card"><div class="num">${pendingPayouts}</div><div class="lbl">Pending Payouts</div></div>
     <div class="stat-card"><div class="num">${totalExperts}</div><div class="lbl">Total Experts</div></div>
     <div class="stat-card"><div class="num">${verifiedExperts}</div><div class="lbl">Verified Experts</div></div>
     <div class="stat-card"><div class="num">${pending}</div><div class="lbl">Pending Applications</div></div>
-    <div class="stat-card"><div class="num">${pendingTokens}</div><div class="lbl">Pending Token Fees</div></div>
     <div class="stat-card"><div class="num">${totalBookings}</div><div class="lbl">Total Bookings</div></div>
   `;
+}
+
+function renderPayouts() {
+  const div = document.getElementById("payoutsList");
+  const pending = payoutRequests.filter(p => p.status === "pending");
+  if (pending.length === 0) {
+    div.innerHTML = '<div class="empty-state">Koi pending payout request nahi hai.</div>';
+    return;
+  }
+  div.innerHTML = pending.slice().reverse().map(p => `
+    <div class="list-item">
+      <div>
+        <b>${p.expertName}</b> <span class="expert-meta">(${p.expertId})</span><br>
+        <span class="expert-meta">Method: <b>${p.method}</b> · Account: <b style="color:var(--amber);">${p.account}</b></span><br>
+        <span style="font-size:1.1rem; font-weight:700; color:var(--success);">Amount: Rs. ${p.amount}</span>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button class="btn btn-sm btn-success" data-pay-confirm="${p.id}">Mark as Paid</button>
+      </div>
+    </div>
+  `).join("");
+
+  div.querySelectorAll("[data-pay-confirm]").forEach(btn => {
+    btn.onclick = async () => {
+      try {
+        await updateDoc(doc(db, "payoutRequests", btn.dataset.payConfirm), { status: "paid", paidAt: new Date().toISOString() });
+        showToast("Payout completed & marked as Paid!", "success");
+      } catch (err) {
+        showToast(err.message, "error");
+      }
+    };
+  });
 }
 
 function renderVerifyQueue() {
@@ -299,48 +339,6 @@ function renderBookings() {
   `).join("");
 }
 
-function renderTokens() {
-  const div = document.getElementById("tokensList");
-  const pending = tokenFees.filter(t => t.status === "pending_verification");
-  if (pending.length === 0) {
-    div.innerHTML = '<div class="empty-state">Koi token fee verify karne wala pending nahi hai.</div>';
-    return;
-  }
-  div.innerHTML = pending.slice().reverse().map(t => `
-    <div class="list-item">
-      <div>
-        <b>Expert ID: ${t.expertId}</b> ← Client: ${t.customerId}<br>
-        <span class="expert-meta">Amount: Rs. ${t.amount} · Transaction ID: <b style="color:var(--amber);">${t.txnId}</b></span>
-      </div>
-      <div style="display:flex; gap:8px;">
-        <button class="btn btn-sm btn-success" data-token-verify="${t.id}">Verify</button>
-        <button class="btn btn-sm btn-danger" data-token-reject="${t.id}">Reject</button>
-      </div>
-    </div>
-  `).join("");
-
-  div.querySelectorAll("[data-token-verify]").forEach(btn => {
-    btn.onclick = async () => {
-      try {
-        await updateTokenFeeDoc(btn.dataset.tokenVerify, { status: "verified" });
-        showToast("Token fee verified! Chat unlocked for customer.", "success");
-      } catch (err) {
-        showToast(err.message, "error");
-      }
-    };
-  });
-  div.querySelectorAll("[data-token-reject]").forEach(btn => {
-    btn.onclick = async () => {
-      try {
-        await updateTokenFeeDoc(btn.dataset.tokenReject, { status: "rejected" });
-        showToast("Token fee rejected.", "info");
-      } catch (err) {
-        showToast(err.message, "error");
-      }
-    };
-  });
-}
-
 function renderExperts() {
   const div = document.getElementById("expertsList");
   if (experts.length === 0) {
@@ -357,8 +355,8 @@ function renderExperts() {
 
 function renderAll() {
   renderStats();
+  renderPayouts();
   renderVerifyQueue();
-  renderTokens();
   renderPayments();
   renderBookings();
   renderExperts();
