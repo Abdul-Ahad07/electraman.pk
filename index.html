@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Electra Man | On-Demand Electrical Experts</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand"><span class="bolt">⚡</span> ELECTRA MAN</div>
+  <nav class="nav-links">
+    <a href="expert.html">Expert Login</a>
+    <a href="admin.html">Admin</a>
+  </nav>
+</header>
+
+<section class="hero">
+  <span class="eyebrow">Service Coverage Across Pakistan</span>
+  <h1>On-Demand <span>Electrical</span> Experts,<br>Right at Your Doorstep</h1>
+  <p>Select your area, get matched with verified electricians nearby, chat to confirm the rate, and book — all in one place.</p>
+  <div class="trace"></div>
+</section>
+
+<section class="finder-wrap">
+  <div class="panel">
+    <div class="section-title">Locate An Expert Nearby</div>
+    <div class="section-sub">Select your province, city, and exact street details.</div>
+
+    <button class="btn btn-outline btn-block" id="locateBtn" onclick="useMyLocation()" style="margin-bottom:18px;">📍 Use My Live Location (Auto-fill)</button>
+    <div id="locateStatus" class="notice" style="display:none;"></div>
+
+    <div class="field-row">
+      <div class="field">
+        <label for="province">Select Subah (Province)</label>
+        <select id="province" onchange="onProvinceChange()">
+          <option value="">-- Choose Province --</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="city">Select Shehar (City) — type to search</label>
+        <input type="text" id="city" list="cityList" placeholder="-- Choose Province First --" disabled oninput="onCityInput()">
+        <datalist id="cityList"></datalist>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field" style="flex:1 1 100%;">
+        <label for="area">Exact Area / Street Address</label>
+        <input type="text" id="area" placeholder="e.g. Block C, Model Town">
+        <div id="addressWarning" class="notice warn" style="display:none; margin-top:8px;"></div>
+      </div>
+    </div>
+
+    <button class="btn btn-block" id="findBtn" onclick="findElectricians()" disabled>Find Electricians</button>
+
+    <div class="results" id="results">
+      <div class="empty-state">Select location parameters to reveal verified experts near you.</div>
+    </div>
+  </div>
+
+  <div class="chat-box" id="chatBox" style="display:none;">
+    <div class="chat-header"><span class="dot"></span> Chat with <span id="chatExpertName">Expert</span></div>
+    <div class="chat-log" id="chatLog"></div>
+    <div id="quickReplies" style="display:flex; flex-wrap:wrap; gap:8px; padding:12px 18px 0; background:var(--charcoal-2);"></div>
+    <div class="chat-input-row">
+      <textarea id="chatInput" placeholder="Apna sawal likhein (contact info allow nahi hai)"></textarea>
+      <button class="btn btn-sm" onclick="sendMessage()">Send</button>
+    </div>
+    <div class="confirm-row">
+      <div class="field" style="flex:1; min-width:180px;">
+        <label style="font-size:0.78rem;">Jo rate chat mein tay hua, wo likhein (Rs.)</label>
+        <input type="text" id="agreedAmount" placeholder="e.g. 900">
+      </div>
+      <button class="btn btn-success" onclick="openPaymentModal()">Pay &amp; Confirm Booking</button>
+    </div>
+  </div>
+
+  <div class="panel" id="myBookingsPanel" style="margin-top:30px; display:none;">
+    <div class="section-title">My Bookings</div>
+    <div class="section-sub">Kaam mukammal hone par apna "Job Completion Code" apne electrician ko dein — usi se payment release hogi.</div>
+    <div id="myBookingsList"></div>
+  </div>
+</section>
+
+<footer>Electra Man — Demo build. <span id="fbStatus" style="color:var(--muted);">🟡 Connecting to Firebase...</span></footer>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div id="paymentStep">
+      <div class="section-title">Complete Payment</div>
+      <p style="color:var(--muted); font-size:0.85rem; margin-top:6px;">
+        Scan QR ya diye gaye Till number par <span id="payAmount" style="color:var(--amber);">Rs. 0</span> bhejein, phir transaction ID neeche enter karein.
+      </p>
+      <img id="qrImg" src="" alt="Payment QR Code" style="width:160px; height:160px; margin:16px auto; display:block; border-radius:8px; border:1px solid var(--circuit-line);">
+      <div class="booking-id" id="tillDisplay" style="font-size:0.95rem;">Till: --</div>
+      <div class="notice warn" style="text-align:left;">Demo till/QR hai — client real JazzCash/Easypaisa till dega to yahan update ho jayega.</div>
+      <div class="field" style="text-align:left; margin-bottom:14px;">
+        <label>Transaction ID (JazzCash/Easypaisa se milega)</label>
+        <input type="text" id="txnId" placeholder="e.g. 8823471190">
+      </div>
+      <button class="btn btn-block btn-success" onclick="submitPayment()">I've Paid — Confirm Booking</button>
+    </div>
+
+    <div id="confirmStep" style="display:none;">
+      <div class="icon-circle">✓</div>
+      <div class="section-title">Booking Locked</div>
+      <p style="color:var(--muted); font-size:0.88rem; margin-top:6px;">Payment verification ke baad expert ko dispatch confirm hoga. Kaam mukammal hone par expert ko apna "Job Completion Code" dena — wahi payment release karega.</p>
+      <div class="booking-id" id="bookingIdDisplay">BKG-000000</div>
+      <span class="pill pending">Payment: Pending Verification</span>
+      <button class="btn btn-block" style="margin-top:16px;" onclick="closeModal()">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- Token Fee lock modal — small upfront fee required before chat unlocks -->
+<div class="modal-overlay" id="tokenModalOverlay">
+  <div class="modal">
+    <div id="tokenPendingStep">
+      <div class="section-title">Unlock Chat — Token Fee</div>
+      <p style="color:var(--muted); font-size:0.85rem; margin-top:6px;">
+        Is expert se chat shuru karne ke liye ek chhota Token Fee <span id="tokenAmountDisplay" style="color:var(--amber);">Rs. 0</span> pehle jama karna hoga. Yeh serious inquiries ko confirm karne ke liye hai.
+      </p>
+      <img id="tokenQrImg" src="" alt="Token Fee QR Code" style="width:150px; height:150px; margin:14px auto; display:block; border-radius:8px; border:1px solid var(--circuit-line);">
+      <div class="booking-id" id="tokenTillDisplay" style="font-size:0.9rem;">Till: --</div>
+      <div class="notice warn" style="text-align:left;">Demo till/QR hai — client real till dega to update ho jayega.</div>
+      <div class="field" style="text-align:left; margin-bottom:14px;">
+        <label>Transaction ID</label>
+        <input type="text" id="tokenTxnId" placeholder="e.g. 8823471190">
+      </div>
+      <button class="btn btn-block btn-success" id="btnSubmitToken">I've Paid Token Fee</button>
+      <button class="btn btn-outline btn-block" style="margin-top:10px;" onclick="closeTokenModal()">Cancel</button>
+    </div>
+
+    <div id="tokenWaitingStep" style="display:none;">
+      <div class="icon-circle" style="color:var(--amber); background:rgba(255,201,60,0.15); border-color:rgba(255,201,60,0.4);">⏳</div>
+      <div class="section-title">Verification Pending</div>
+      <p style="color:var(--muted); font-size:0.88rem; margin-top:6px;">Admin token fee verify kar raha hai. Verify hote hi chat yahan khud khul jayegi — page yahi khula rehne dein ya baad mein wapas aayein.</p>
+      <button class="btn btn-block" style="margin-top:16px;" onclick="closeTokenModal()">Close</button>
+    </div>
+
+    <div id="tokenRejectedStep" style="display:none;">
+      <div class="icon-circle" style="color:var(--danger); background:rgba(255,92,92,0.15); border-color:rgba(255,92,92,0.4);">✕</div>
+      <div class="section-title">Token Fee Not Verified</div>
+      <p style="color:var(--muted); font-size:0.88rem; margin-top:6px;">Transaction verify nahi ho saki. Dubara sahi Transaction ID ke sath try karein.</p>
+      <button class="btn btn-block" style="margin-top:16px;" id="btnRetryToken">Try Again</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import {
+  LOCATIONS, DUMMY_TILL, getTillQrUrl, genBookingId, initials,
+  listenExperts, listenBookings, setBookingDoc,
+  getOrCreateCustomerId, sendChatMessage, listenChatMessages,
+  validateAddressAgainstCity, getActiveBookingForExpert,
+  CUSTOMER_QUICK_REPLIES,
+  TOKEN_FEE_AMOUNT, listenTokenFee, submitTokenFee
+} from "./shared-data.js";
+import { showToast } from "./toast.js";
+
+const myCustomerId = getOrCreateCustomerId();
+let chatUnsub = null;
+let expertsCache = [];
+let bookingsCache = [];
+let selectedExpert = null;
+
+const provinceSelect = document.getElementById("province");
+Object.keys(LOCATIONS).forEach(p => {
+  const opt = document.createElement("option");
+  opt.value = p; opt.textContent = p;
+  provinceSelect.appendChild(opt);
+});
+
+listenExperts(
+  list => {
+    expertsCache = list;
+    const badge = document.getElementById("fbStatus");
+    if (badge) { badge.textContent = "🟢 Live — Firebase Connected"; badge.style.color = "var(--success)"; }
+  },
+  err => {
+    const badge = document.getElementById("fbStatus");
+    if (badge) { badge.textContent = "🔴 Firebase Connection Error — " + err.message; badge.style.color = "var(--danger)"; }
+  }
+);
+listenBookings(list => {
+  bookingsCache = list;
+  renderMyBookings();
+});
+
+window.onProvinceChange = function () {
+  const province = provinceSelect.value;
+  const cityInput = document.getElementById("city");
+  const cityList = document.getElementById("cityList");
+  cityInput.value = "";
+  cityList.innerHTML = "";
+  document.getElementById("findBtn").disabled = true;
+  document.getElementById("results").innerHTML = '<div class="empty-state">Select location parameters to reveal verified experts near you.</div>';
+
+  if (!province) {
+    cityInput.disabled = true;
+    cityInput.placeholder = "-- Choose Province First --";
+    return;
+  }
+  cityInput.disabled = false;
+  cityInput.placeholder = "Type to search city...";
+  LOCATIONS[province].forEach(c => {
+    const opt = document.createElement("option");
+    opt.value = c;
+    cityList.appendChild(opt);
+  });
+};
+
+window.onCityInput = function () {
+  const province = provinceSelect.value;
+  const city = document.getElementById("city").value.trim();
+  const valid = province && LOCATIONS[province].some(c => c.toLowerCase() === city.toLowerCase());
+  document.getElementById("findBtn").disabled = !valid;
+};
+
+window.findElectricians = function () {
+  const province = provinceSelect.value;
+  const cityRaw = document.getElementById("city").value.trim();
+  const city = (LOCATIONS[province] || []).find(c => c.toLowerCase() === cityRaw.toLowerCase());
+  const area = document.getElementById("area").value.trim();
+  const resultsDiv = document.getElementById("results");
+  const warnDiv = document.getElementById("addressWarning");
+
+  if (!city) {
+    resultsDiv.innerHTML = '<div class="empty-state">Pehle list mein se ek valid city select karein.</div>';
+    return;
+  }
+
+  const addrCheck = validateAddressAgainstCity(city, area);
+  if (!addrCheck.valid) {
+    warnDiv.style.display = "block";
+    warnDiv.textContent = addrCheck.reason;
+    resultsDiv.innerHTML = "";
+    return;
+  }
+  warnDiv.style.display = "none";
+
+  const matches = expertsCache.filter(e => e.province === province && e.city === city && e.verified);
+
+  if (matches.length === 0) {
+    resultsDiv.innerHTML = `<div class="empty-state">Abhi is area (${city}) mein koi registered expert nahi mila. Nearby city try karein.</div>`;
+    return;
+  }
+
+  resultsDiv.innerHTML = matches.map(e => {
+    const activeBooking = getActiveBookingForExpert(e.id, bookingsCache);
+    const isBooked = !!activeBooking;
+    return `
+    <div class="expert-card" style="${isBooked ? 'opacity:0.55;' : ''}">
+      <div class="expert-info">
+        <div class="avatar">${initials(e.name)}</div>
+        <div>
+          <div class="expert-name">${e.name} <span class="badge-verified">✓ Verified</span> ${isBooked ? '<span class="pill pending">Booked</span>' : '<span class="pill approved">Available</span>'}</div>
+          <div class="expert-meta">${e.specialty} · ★ ${e.rating} · ${e.jobs} jobs completed</div>
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; gap:14px;">
+        ${isBooked
+          ? `<button class="btn btn-sm btn-outline" disabled>Currently Booked</button>`
+          : `<button class="btn btn-sm" onclick='window.startChat(${JSON.stringify(e)})'>Chat</button>`
+        }
+      </div>
+    </div>
+  `}).join("");
+};
+
+let tokenUnsub = null;
+
+window.startChat = function (expert) {
+  selectedExpert = expert;
+  if (tokenUnsub) tokenUnsub();
+  tokenUnsub = listenTokenFee(expert.id, myCustomerId, (tokenDoc) => {
+    if (tokenDoc && tokenDoc.status === "verified") {
+      window.closeTokenModal();
+      openChatUI(expert);
+    } else if (tokenDoc && tokenDoc.status === "pending_verification") {
+      showTokenWaitingStep();
+    } else if (tokenDoc && tokenDoc.status === "rejected") {
+      showTokenRejectedStep();
+    } else {
+      showTokenPendingStep();
+    }
+  });
+};
+
+function showTokenPendingStep() {
+  document.getElementById("tokenPendingStep").style.display = "block";
+  document.getElementById("tokenWaitingStep").style.display = "none";
+  document.getElementById("tokenRejectedStep").style.display = "none";
+  document.getElementById("tokenAmountDisplay").textContent = "Rs. " + TOKEN_FEE_AMOUNT;
+  document.getElementById("tokenTillDisplay").textContent = `${DUMMY_TILL.provider} Till: ${DUMMY_TILL.number} (${DUMMY_TILL.accountTitle})`;
+  document.getElementById("tokenQrImg").src = getTillQrUrl();
+  document.getElementById("tokenTxnId").value = "";
+  document.getElementById("tokenModalOverlay").classList.add("active");
+}
+function showTokenWaitingStep() {
+  document.getElementById("tokenPendingStep").style.display = "none";
+  document.getElementById("tokenWaitingStep").style.display = "block";
+  document.getElementById("tokenRejectedStep").style.display = "none";
+  document.getElementById("tokenModalOverlay").classList.add("active");
+}
+function showTokenRejectedStep() {
+  document.getElementById("tokenPendingStep").style.display = "none";
+  document.getElementById("tokenWaitingStep").style.display = "none";
+  document.getElementById("tokenRejectedStep").style.display = "block";
+  document.getElementById("tokenModalOverlay").classList.add("active");
+}
+window.closeTokenModal = function () {
+  document.getElementById("tokenModalOverlay").classList.remove("active");
+};
+
+document.getElementById("btnSubmitToken").onclick = async () => {
+  const txnId = document.getElementById("tokenTxnId").value.trim();
+  if (!txnId) { showToast("Transaction ID enter karein.", "error"); return; }
+  if (!selectedExpert) return;
+  await submitTokenFee(selectedExpert.id, myCustomerId, txnId);
+  showTokenWaitingStep();
+};
+document.getElementById("btnRetryToken").onclick = () => {
+  showTokenPendingStep();
+};
+
+function openChatUI(expert) {
+  document.getElementById("chatBox").style.display = "block";
+  document.getElementById("chatExpertName").textContent = expert.name;
+  document.getElementById("chatLog").innerHTML = '<div class="empty-state">Chat shuru karein — aapka message expert ko live milega.</div>';
+  document.getElementById("chatBox").scrollIntoView({ behavior: "smooth" });
+
+  const qDiv = document.getElementById("quickReplies");
+  qDiv.innerHTML = CUSTOMER_QUICK_REPLIES.map(q => `<button class="btn btn-sm btn-outline" data-quick="${q.replace(/"/g, '&quot;')}">${q}</button>`).join("");
+  qDiv.querySelectorAll("[data-quick]").forEach(btn => {
+    btn.onclick = () => sendRawMessage(btn.dataset.quick);
+  });
+
+  if (chatUnsub) chatUnsub();
+  chatUnsub = listenChatMessages(expert.id, myCustomerId, (messages) => {
+    const log = document.getElementById("chatLog");
+    if (messages.length === 0) {
+      log.innerHTML = '<div class="empty-state">Chat shuru karein — aapka message expert ko live milega.</div>';
+      return;
+    }
+    log.innerHTML = messages.map(m => `
+      <div class="msg ${m.sender === 'customer' ? 'me' : 'them'}">${m.text}</div>
+    `).join("");
+    log.scrollTop = log.scrollHeight;
+  });
+}
+
+async function sendRawMessage(text) {
+  if (!text || !selectedExpert) return;
+  try {
+    await sendChatMessage(selectedExpert.id, myCustomerId, selectedExpert.name, "customer", text);
+  } catch (err) {
+    showToast(err.message, "error");
+  }
+}
+
+window.sendMessage = async function () {
+  const input = document.getElementById("chatInput");
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = "";
+  await sendRawMessage(text);
+};
+
+window.openPaymentModal = function () {
+  if (!selectedExpert) return;
+  const amount = parseInt(document.getElementById("agreedAmount").value.trim());
+  if (!amount || amount <= 0) { showToast("Pehle 'Jo rate chat mein tay hua' wala amount likhein.", "error"); return; }
+  document.getElementById("paymentStep").style.display = "block";
+  document.getElementById("confirmStep").style.display = "none";
+  document.getElementById("payAmount").textContent = "Rs. " + amount;
+  document.getElementById("tillDisplay").textContent = `${DUMMY_TILL.provider} Till: ${DUMMY_TILL.number} (${DUMMY_TILL.accountTitle})`;
+  document.getElementById("qrImg").src = getTillQrUrl();
+  document.getElementById("txnId").value = "";
+  document.getElementById("modalOverlay").classList.add("active");
+};
+
+window.submitPayment = async function () {
+  const txnId = document.getElementById("txnId").value.trim();
+  if (!txnId) { showToast("Transaction ID enter karein — payment ki verification isi se hogi.", "error"); return; }
+  const amount = parseInt(document.getElementById("agreedAmount").value.trim());
+
+  const id = genBookingId();
+  await setBookingDoc(id, {
+    id, expertId: selectedExpert.id, expertName: selectedExpert.name,
+    customerId: myCustomerId,
+    amount, date: new Date().toISOString(),
+    txnId, paymentStatus: "pending_verification", escrowReleased: false
+  });
+
+  document.getElementById("paymentStep").style.display = "none";
+  document.getElementById("confirmStep").style.display = "block";
+  document.getElementById("bookingIdDisplay").textContent = id;
+};
+
+window.closeModal = function () {
+  document.getElementById("modalOverlay").classList.remove("active");
+};
+
+function renderMyBookings() {
+  const mine = bookingsCache.filter(b => b.customerId === myCustomerId);
+  const panel = document.getElementById("myBookingsPanel");
+  const list = document.getElementById("myBookingsList");
+  if (mine.length === 0) { panel.style.display = "none"; return; }
+  panel.style.display = "block";
+
+  list.innerHTML = mine.slice().reverse().map(b => {
+    let statusPill = '<span class="pill pending">Payment Pending Verification</span>';
+    if (b.paymentStatus === "verified" && !b.jobStatus) statusPill = '<span class="pill pending">Paid — Waiting for Expert to Accept</span>';
+    if (b.jobStatus === "declined") statusPill = '<span class="pill rejected">Expert Declined</span>';
+    if (b.paymentStatus === "verified" && b.jobStatus === "accepted" && !b.escrowReleased) statusPill = '<span class="pill approved">Expert Working</span>';
+    if (b.escrowReleased) statusPill = '<span class="pill approved">Completed — Payment Released</span>';
+
+    const showOtp = b.paymentStatus === "verified" && b.jobStatus === "accepted" && !b.escrowReleased && b.completionOtp;
+    return `
+      <div class="list-item">
+        <div>
+          <b>${b.id}</b><br><span class="expert-meta">${b.expertName} · Rs. ${b.amount}</span><br>${statusPill}
+          ${showOtp ? `<div class="notice" style="margin-top:8px;">Job Completion Code: <b style="color:var(--amber); font-size:1.05rem;">${b.completionOtp}</b><br>Kaam mukammal hone par yeh code apne electrician ko dein — wahi payment release karega.</div>` : ''}
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+// ---- Live location ----
+function normalizeProvinceName(stateName) {
+  if (!stateName) return null;
+  const s = stateName.toLowerCase();
+  if (s.includes("punjab")) return "Punjab";
+  if (s.includes("sindh")) return "Sindh";
+  if (s.includes("khyber") || s.includes("kpk") || s.includes("pakhtunkhwa")) return "Khyber Pakhtunkhwa (KPK)";
+  if (s.includes("balochistan")) return "Balochistan";
+  if (s.includes("islamabad")) return "Islamabad";
+  return null;
+}
+function findClosestCity(province, cityGuess) {
+  if (!province || !cityGuess) return null;
+  const list = LOCATIONS[province] || [];
+  const guess = cityGuess.toLowerCase();
+  return list.find(c => c.toLowerCase() === guess) ||
+         list.find(c => guess.includes(c.toLowerCase()) || c.toLowerCase().includes(guess)) ||
+         null;
+}
+
+window.useMyLocation = function () {
+  const statusDiv = document.getElementById("locateStatus");
+  statusDiv.style.display = "block";
+  statusDiv.className = "notice";
+  statusDiv.textContent = "📡 Aapki location detect ki ja rahi hai...";
+
+  if (!navigator.geolocation) {
+    statusDiv.className = "notice warn";
+    statusDiv.textContent = "Yeh browser location detect support nahi karta. Manually select karein.";
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(async (pos) => {
+    const { latitude, longitude } = pos.coords;
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+      const data = await res.json();
+      const addr = data.address || {};
+
+      const province = normalizeProvinceName(addr.state);
+      const cityGuess = addr.city || addr.town || addr.county || addr.state_district || "";
+      const matchedCity = findClosestCity(province, cityGuess);
+      const area = addr.suburb || addr.road || addr.neighbourhood || addr.village || "";
+
+      if (!province) {
+        statusDiv.className = "notice warn";
+        statusDiv.textContent = "Aapki location Electra Man ke coverage area se bahar lag rahi hai. Manually select karein.";
+        return;
+      }
+
+      provinceSelect.value = province;
+      window.onProvinceChange();
+
+      if (matchedCity) {
+        document.getElementById("city").value = matchedCity;
+        window.onCityInput();
+        statusDiv.className = "notice";
+        statusDiv.textContent = `✅ Location detect ho gayi: ${matchedCity}, ${province}. Area field khud se fill kar diya hai.`;
+      } else {
+        statusDiv.className = "notice warn";
+        statusDiv.textContent = `Province (${province}) detect ho gaya, lekin exact city (${cityGuess || "unknown"}) hamari list mein nahi hai. City manually select karein.`;
+      }
+      if (area) document.getElementById("area").value = area;
+
+    } catch (err) {
+      statusDiv.className = "notice warn";
+      statusDiv.textContent = "Location detect nahi ho saki, internet check karein ya manually select karein.";
+    }
+  }, () => {
+    statusDiv.className = "notice warn";
+    statusDiv.textContent = "Location permission nahi mili. Manually select karein ya permission allow karein.";
+  });
+};
+</script>
+</body>
+</html>
