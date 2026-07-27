@@ -113,13 +113,49 @@
   </div>
 </div>
 
+<!-- Token Fee lock modal — small upfront fee required before chat unlocks -->
+<div class="modal-overlay" id="tokenModalOverlay">
+  <div class="modal">
+    <div id="tokenPendingStep">
+      <div class="section-title">Unlock Chat — Token Fee</div>
+      <p style="color:var(--muted); font-size:0.85rem; margin-top:6px;">
+        Is expert se chat shuru karne ke liye ek chhota Token Fee <span id="tokenAmountDisplay" style="color:var(--amber);">Rs. 0</span> pehle jama karna hoga. Yeh serious inquiries ko confirm karne ke liye hai.
+      </p>
+      <img id="tokenQrImg" src="" alt="Token Fee QR Code" style="width:150px; height:150px; margin:14px auto; display:block; border-radius:8px; border:1px solid var(--circuit-line);">
+      <div class="booking-id" id="tokenTillDisplay" style="font-size:0.9rem;">Till: --</div>
+      <div class="notice warn" style="text-align:left;">Demo till/QR hai — client real till dega to update ho jayega.</div>
+      <div class="field" style="text-align:left; margin-bottom:14px;">
+        <label>Transaction ID</label>
+        <input type="text" id="tokenTxnId" placeholder="e.g. 8823471190">
+      </div>
+      <button class="btn btn-block btn-success" id="btnSubmitToken">I've Paid Token Fee</button>
+      <button class="btn btn-outline btn-block" style="margin-top:10px;" onclick="closeTokenModal()">Cancel</button>
+    </div>
+
+    <div id="tokenWaitingStep" style="display:none;">
+      <div class="icon-circle" style="color:var(--amber); background:rgba(255,201,60,0.15); border-color:rgba(255,201,60,0.4);">⏳</div>
+      <div class="section-title">Verification Pending</div>
+      <p style="color:var(--muted); font-size:0.88rem; margin-top:6px;">Admin token fee verify kar raha hai. Verify hote hi chat yahan khud khul jayegi — page yahi khula rehne dein ya baad mein wapas aayein.</p>
+      <button class="btn btn-block" style="margin-top:16px;" onclick="closeTokenModal()">Close</button>
+    </div>
+
+    <div id="tokenRejectedStep" style="display:none;">
+      <div class="icon-circle" style="color:var(--danger); background:rgba(255,92,92,0.15); border-color:rgba(255,92,92,0.4);">✕</div>
+      <div class="section-title">Token Fee Not Verified</div>
+      <p style="color:var(--muted); font-size:0.88rem; margin-top:6px;">Transaction verify nahi ho saki. Dubara sahi Transaction ID ke sath try karein.</p>
+      <button class="btn btn-block" style="margin-top:16px;" id="btnRetryToken">Try Again</button>
+    </div>
+  </div>
+</div>
+
 <script type="module">
 import {
   LOCATIONS, DUMMY_TILL, getTillQrUrl, genBookingId, initials,
   listenExperts, listenBookings, setBookingDoc,
   getOrCreateCustomerId, sendChatMessage, listenChatMessages,
   validateAddressAgainstCity, getActiveBookingForExpert,
-  CUSTOMER_QUICK_REPLIES
+  CUSTOMER_QUICK_REPLIES,
+  TOKEN_FEE_AMOUNT, listenTokenFee, submitTokenFee
 } from "./shared-data.js";
 import { showToast } from "./toast.js";
 
@@ -147,7 +183,6 @@ listenExperts(
     if (badge) { badge.textContent = "🔴 Firebase Connection Error — " + err.message; badge.style.color = "var(--danger)"; }
   }
 );
-
 listenBookings(list => {
   bookingsCache = list;
   renderMyBookings();
@@ -221,30 +256,76 @@ window.findElectricians = function () {
         <div class="avatar">${initials(e.name)}</div>
         <div>
           <div class="expert-name">${e.name} <span class="badge-verified">✓ Verified</span> ${isBooked ? '<span class="pill pending">Booked</span>' : '<span class="pill approved">Available</span>'}</div>
-          <div class="expert-meta">${e.specialty || 'General Electrician'} · ★ ${e.rating || 5.0} · ${e.jobs || 0} jobs completed</div>
+          <div class="expert-meta">${e.specialty} · ★ ${e.rating} · ${e.jobs} jobs completed</div>
         </div>
       </div>
       <div style="display:flex; align-items:center; gap:14px;">
         ${isBooked
           ? `<button class="btn btn-sm btn-outline" disabled>Currently Booked</button>`
-          : `<button class="btn btn-sm btn-chat-trigger" data-id="${e.id}">Chat</button>`
+          : `<button class="btn btn-sm" onclick='window.startChat(${JSON.stringify(e)})'>Chat</button>`
         }
       </div>
     </div>
   `}).join("");
+};
 
-  resultsDiv.querySelectorAll(".btn-chat-trigger").forEach(btn => {
-    btn.onclick = (e) => {
-      e.stopPropagation();
-      const expertId = btn.dataset.id;
-      const expObj = matches.find(m => m.id === expertId);
-      if (expObj) openChatUI(expObj);
-    };
+let tokenUnsub = null;
+
+window.startChat = function (expert) {
+  selectedExpert = expert;
+  if (tokenUnsub) tokenUnsub();
+  tokenUnsub = listenTokenFee(expert.id, myCustomerId, (tokenDoc) => {
+    if (tokenDoc && tokenDoc.status === "verified") {
+      window.closeTokenModal();
+      openChatUI(expert);
+    } else if (tokenDoc && tokenDoc.status === "pending_verification") {
+      showTokenWaitingStep();
+    } else if (tokenDoc && tokenDoc.status === "rejected") {
+      showTokenRejectedStep();
+    } else {
+      showTokenPendingStep();
+    }
   });
 };
 
+function showTokenPendingStep() {
+  document.getElementById("tokenPendingStep").style.display = "block";
+  document.getElementById("tokenWaitingStep").style.display = "none";
+  document.getElementById("tokenRejectedStep").style.display = "none";
+  document.getElementById("tokenAmountDisplay").textContent = "Rs. " + TOKEN_FEE_AMOUNT;
+  document.getElementById("tokenTillDisplay").textContent = `${DUMMY_TILL.provider} Till: ${DUMMY_TILL.number} (${DUMMY_TILL.accountTitle})`;
+  document.getElementById("tokenQrImg").src = getTillQrUrl();
+  document.getElementById("tokenTxnId").value = "";
+  document.getElementById("tokenModalOverlay").classList.add("active");
+}
+function showTokenWaitingStep() {
+  document.getElementById("tokenPendingStep").style.display = "none";
+  document.getElementById("tokenWaitingStep").style.display = "block";
+  document.getElementById("tokenRejectedStep").style.display = "none";
+  document.getElementById("tokenModalOverlay").classList.add("active");
+}
+function showTokenRejectedStep() {
+  document.getElementById("tokenPendingStep").style.display = "none";
+  document.getElementById("tokenWaitingStep").style.display = "none";
+  document.getElementById("tokenRejectedStep").style.display = "block";
+  document.getElementById("tokenModalOverlay").classList.add("active");
+}
+window.closeTokenModal = function () {
+  document.getElementById("tokenModalOverlay").classList.remove("active");
+};
+
+document.getElementById("btnSubmitToken").onclick = async () => {
+  const txnId = document.getElementById("tokenTxnId").value.trim();
+  if (!txnId) { showToast("Transaction ID enter karein.", "error"); return; }
+  if (!selectedExpert) return;
+  await submitTokenFee(selectedExpert.id, myCustomerId, txnId);
+  showTokenWaitingStep();
+};
+document.getElementById("btnRetryToken").onclick = () => {
+  showTokenPendingStep();
+};
+
 function openChatUI(expert) {
-  selectedExpert = expert;
   document.getElementById("chatBox").style.display = "block";
   document.getElementById("chatExpertName").textContent = expert.name;
   document.getElementById("chatLog").innerHTML = '<div class="empty-state">Chat shuru karein — aapka message expert ko live milega.</div>';
@@ -270,11 +351,10 @@ function openChatUI(expert) {
   });
 }
 
-// Updated with customerId parameter for auto-ban tracking
 async function sendRawMessage(text) {
   if (!text || !selectedExpert) return;
   try {
-    await sendChatMessage(selectedExpert.id, myCustomerId, selectedExpert.name, "customer", text, myCustomerId);
+    await sendChatMessage(selectedExpert.id, myCustomerId, selectedExpert.name, "customer", text);
   } catch (err) {
     showToast(err.message, "error");
   }
@@ -349,7 +429,7 @@ function renderMyBookings() {
   }).join("");
 }
 
-// Location
+// ---- Live location ----
 function normalizeProvinceName(stateName) {
   if (!stateName) return null;
   const s = stateName.toLowerCase();
@@ -360,7 +440,6 @@ function normalizeProvinceName(stateName) {
   if (s.includes("islamabad")) return "Islamabad";
   return null;
 }
-
 function findClosestCity(province, cityGuess) {
   if (!province || !cityGuess) return null;
   const list = LOCATIONS[province] || [];
