@@ -5,6 +5,22 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin Panel | Electra Man</title>
 <link rel="stylesheet" href="styles.css">
+<style>
+  /* 🖼️ Custom Modal CSS for Full Image Preview */
+  .img-modal {
+    display: none; position: fixed; z-index: 1000; left: 0; top: 0;
+    width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.85);
+    backdrop-filter: blur(4px); align-items: center; justify-content: center;
+  }
+  .img-modal-content {
+    max-width: 90%; max-height: 85vh; border-radius: 8px; border: 2px solid var(--border);
+  }
+  .img-modal-close {
+    position: absolute; top: 20px; right: 30px; color: #fff; font-size: 35px;
+    font-weight: bold; cursor: pointer; transition: 0.2s;
+  }
+  .img-modal-close:hover { color: var(--amber); }
+</style>
 </head>
 <body>
 
@@ -56,7 +72,7 @@
 
     <div class="tab-content" id="tab-verify">
       <div class="section-title">Pending Expert Applications</div>
-      <div class="section-sub">Screening answers, CNIC, aur experience dekh k Approve/Reject karein.</div>
+      <div class="section-sub">Screening answers, Documents (CNIC/Selfie) verify karein, Phone call confirmation dein, aur approve karein.</div>
       <div id="verifyList"></div>
     </div>
 
@@ -76,6 +92,12 @@
       <div id="expertsList"></div>
     </div>
   </div>
+</div>
+
+<!-- 🖼️ Image Lightbox Modal -->
+<div id="imageModal" class="img-modal">
+  <span class="img-modal-close" id="closeImgModal">&times;</span>
+  <img class="img-modal-content" id="modalImagePreview" src="" alt="Preview">
 </div>
 
 <footer>Electra Man — Demo build. <span id="fbStatus" style="color:var(--muted);">🟡 Connecting to Firebase...</span></footer>
@@ -182,6 +204,19 @@ document.querySelectorAll(".tab-btn").forEach(btn => {
   if (badge) { badge.textContent = "🔴 Setup Error: " + err.message; badge.style.color = "var(--danger)"; }
 }
 
+// 🖼️ Modal Image Preview Logic
+const imgModal = document.getElementById("imageModal");
+const modalImg = document.getElementById("modalImagePreview");
+const closeBtn = document.getElementById("closeImgModal");
+
+function openImageModal(src) {
+  if (!src) return;
+  modalImg.src = src;
+  imgModal.style.display = "flex";
+}
+closeBtn.onclick = () => { imgModal.style.display = "none"; };
+imgModal.onclick = (e) => { if (e.target === imgModal) imgModal.style.display = "none"; };
+
 function renderStats() {
   const totalExperts = experts.length;
   const verifiedExperts = experts.filter(e => e.verified).length;
@@ -239,13 +274,14 @@ function renderVerifyQueue() {
   }
   div.innerHTML = pending.map(a => {
     const score = a.answers ? a.answers.filter((ans, i) => ans === SCREENING_QUESTIONS[i]?.correct).length : 0;
+    
     return `
-    <div class="list-item" style="flex-direction:column; align-items:stretch;">
+    <div class="list-item" style="flex-direction:column; align-items:stretch; background:var(--charcoal-1); border:1px solid var(--border); border-radius:8px; padding:16px; margin-bottom:14px;">
       <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px;">
         <div>
           <b>${a.name}</b> <span class="expert-meta">(${a.id})</span><br>
-          <span class="expert-meta">${a.city}, ${a.province} · ${a.specialty} · ${a.experienceYears} yrs exp</span><br>
-          <span class="expert-meta">CNIC: ${a.cnic} · Phone: ${a.phone}</span>
+          <span class="expert-meta">${a.city}, ${a.province} · ${a.specialty} · ${a.experienceYears || '0'} yrs exp</span><br>
+          <span class="expert-meta">CNIC: <b>${a.cnic}</b> · Phone: <b style="color:var(--amber);">${a.phone}</b></span>
         </div>
         <div style="display:flex; gap:8px; align-items:flex-start;">
           <span class="pill ${score === SCREENING_QUESTIONS.length ? 'approved' : 'pending'}">Screening Score: ${score}/${SCREENING_QUESTIONS.length}</span>
@@ -253,24 +289,79 @@ function renderVerifyQueue() {
           <button class="btn btn-sm btn-danger" data-reject="${a.id}">Reject</button>
         </div>
       </div>
-      <div class="notice" style="margin-top:10px; margin-bottom:0;">"${a.experienceText || 'No description provided.'}"</div>
+
+      <div class="notice" style="margin-top:10px; margin-bottom:10px;">"${a.experienceText || 'No description provided.'}"</div>
+
+      <!-- 🖼️ Document Verification Thumbnails -->
+      <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:8px; margin-bottom:12px; background:var(--charcoal-2); padding:10px; border-radius:6px;">
+        <div style="text-align:center;">
+          <div style="font-size:0.75rem; color:var(--muted); margin-bottom:4px;">CNIC Front</div>
+          ${a.cnicFront ? `<img src="${a.cnicFront}" class="doc-preview" data-zoom="${a.cnicFront}" style="width:90px; height:60px; object-fit:cover; border-radius:4px; cursor:pointer; border:1px solid var(--border);" />` : '<span style="font-size:0.8rem; color:var(--danger);">Not Uploaded</span>'}
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:0.75rem; color:var(--muted); margin-bottom:4px;">CNIC Back</div>
+          ${a.cnicBack ? `<img src="${a.cnicBack}" class="doc-preview" data-zoom="${a.cnicBack}" style="width:90px; height:60px; object-fit:cover; border-radius:4px; cursor:pointer; border:1px solid var(--border);" />` : '<span style="font-size:0.8rem; color:var(--danger);">Not Uploaded</span>'}
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:0.75rem; color:var(--muted); margin-bottom:4px;">Live Selfie</div>
+          ${a.selfie ? `<img src="${a.selfie}" class="doc-preview" data-zoom="${a.selfie}" style="width:60px; height:60px; object-fit:cover; border-radius:4px; cursor:pointer; border:1px solid var(--border);" />` : '<span style="font-size:0.8rem; color:var(--danger);">Not Uploaded</span>'}
+        </div>
+      </div>
+
+      <!-- 📞 Phone Verification & Admin Notes -->
+      <div style="display:flex; flex-direction:column; gap:8px; background:var(--charcoal-2); padding:10px; border-radius:6px;">
+        <label style="display:flex; align-items:center; gap:8px; font-size:0.88rem; cursor:pointer; font-weight:600;">
+          <input type="checkbox" id="callCheck_${a.id}" ${a.callVerified ? 'checked' : ''}>
+          📞 Phone Call Verification Completed (Call expert on ${a.phone} before approval)
+        </label>
+        <div class="field" style="margin:0;">
+          <input type="text" id="adminNotes_${a.id}" placeholder="Admin Notes (e.g., Call done, documents verified)..." value="${a.adminNotes || ''}">
+        </div>
+      </div>
+
     </div>
   `}).join("");
 
+  // Attach Lightbox event to images
+  div.querySelectorAll(".doc-preview").forEach(img => {
+    img.onclick = () => openImageModal(img.dataset.zoom);
+  });
+
+  // Approve Handler with Call Verification Check
   div.querySelectorAll("[data-approve]").forEach(btn => {
     btn.onclick = async () => {
+      const appId = btn.dataset.approve;
+      const isCallVerified = document.getElementById(`callCheck_${appId}`).checked;
+      const notes = document.getElementById(`adminNotes_${appId}`).value.trim();
+
+      if (!isCallVerified) {
+        showToast("Approve karne se pehle 'Phone Call Verification' box check karein!", "error");
+        return;
+      }
+
       try {
-        await updateApplicationDoc(btn.dataset.approve, { status: "approved" });
-        showToast("Application approved!", "success");
+        await updateApplicationDoc(appId, { 
+          status: "approved", 
+          callVerified: true, 
+          adminNotes: notes 
+        });
+        showToast("Application approved successfully!", "success");
       } catch (err) {
         showToast(err.message, "error");
       }
     };
   });
+
+  // Reject Handler
   div.querySelectorAll("[data-reject]").forEach(btn => {
     btn.onclick = async () => {
+      const appId = btn.dataset.reject;
+      const notes = document.getElementById(`adminNotes_${appId}`).value.trim();
       try {
-        await updateApplicationDoc(btn.dataset.reject, { status: "rejected" });
+        await updateApplicationDoc(appId, { 
+          status: "rejected", 
+          adminNotes: notes 
+        });
         showToast("Application rejected.", "info");
       } catch (err) {
         showToast(err.message, "error");
