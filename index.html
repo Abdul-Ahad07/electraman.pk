@@ -252,21 +252,38 @@ window.findElectricians = function () {
     const isBooked = !!activeBooking;
     return `
     <div class="expert-card" style="${isBooked ? 'opacity:0.55;' : ''}">
-      <div class="expert-info">
-        <div class="avatar">${initials(e.name)}</div>
-        <div>
-          <div class="expert-name">${e.name} <span class="badge-verified">✓ Verified</span> ${isBooked ? '<span class="pill pending">Booked</span>' : '<span class="pill approved">Available</span>'}</div>
-          <div class="expert-meta">${e.specialty} · ★ ${e.rating} · ${e.jobs} jobs completed</div>
+      <div class="expert-info" style="display:flex; gap:12px; align-items:flex-start;">
+        <div class="avatar" style="flex-shrink:0;">${initials(e.name)}</div>
+        <div style="flex:1; min-width:0;">
+          <div class="expert-header-row" style="display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-bottom:4px;">
+            <b class="expert-name" style="font-size:1.05rem;">${e.name}</b>
+            <span class="badge-verified" style="white-space:nowrap;">✓ Verified</span> 
+            ${isBooked ? '<span class="pill pending" style="white-space:nowrap;">Booked</span>' : '<span class="pill approved" style="white-space:nowrap;">Available</span>'}
+          </div>
+          <div class="expert-meta" style="font-size:0.85rem; color:var(--muted); margin-bottom:12px; word-break:break-word;">
+            ${e.specialty || 'General Electrician'} · ★ ${e.rating || 5.0} · ${e.jobs || 0} jobs completed
+          </div>
+          <div style="display:flex; align-items:center;">
+            ${isBooked
+              ? `<button class="btn btn-sm btn-outline" disabled>Currently Booked</button>`
+              : `<button class="btn btn-sm btn-chat-action" data-expert-id="${e.id}">Chat</button>`
+            }
+          </div>
         </div>
-      </div>
-      <div style="display:flex; align-items:center; gap:14px;">
-        ${isBooked
-          ? `<button class="btn btn-sm btn-outline" disabled>Currently Booked</button>`
-          : `<button class="btn btn-sm" onclick='window.startChat(${JSON.stringify(e)})'>Chat</button>`
-        }
       </div>
     </div>
   `}).join("");
+
+  // Direct Click Event Listener Fix for Chat Buttons
+  resultsDiv.querySelectorAll(".btn-chat-action").forEach(btn => {
+    btn.onclick = () => {
+      const expId = btn.dataset.expertId;
+      const expertObj = matches.find(item => item.id === expId);
+      if (expertObj) {
+        window.startChat(expertObj);
+      }
+    };
+  });
 };
 
 let tokenUnsub = null;
