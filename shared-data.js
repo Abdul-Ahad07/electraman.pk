@@ -149,13 +149,13 @@ export function getActiveBookingForExpert(expertId, bookingsList) {
 }
 
 export const DUMMY_TILL = {
-  provider: "JazzCash",
-  number: "0300-1234567",
-  accountTitle: "Electra Man Services"
+  provider: "Easypaisa",
+  number: "03212509343",
+  accountTitle: "ABDUL AHAD"
 };
 
 export function getTillQrUrl() {
-  const payload = encodeURIComponent(`${DUMMY_TILL.provider} Till: ${DUMMY_TILL.number} | ${DUMMY_TILL.accountTitle}`);
+  const payload = encodeURIComponent(`${DUMMY_TILL.provider} QR - MSISDN: ${DUMMY_TILL.number} - ${DUMMY_TILL.accountTitle}`);
   return `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${payload}`;
 }
 
