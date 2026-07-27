@@ -85,7 +85,7 @@ export const EXPERT_QUICK_REPLIES = [
   "Theek hai, intezar kar raha hoon"
 ];
 
-// ---- Ultra-Strict Message Filter ----
+// ---- Ultra-Strict Message Safety Filter ----
 const PHONE_REGEX = /(\+92|0)[\s-]?3\d{2}[\s-]?\d{7}\b|\b\d{10,11}\b/g;
 const EMAIL_REGEX = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
 const OFF_PLATFORM_PHRASES = [
@@ -162,6 +162,7 @@ export function getTillQrUrl() {
 export function genApplicationId() { return "APP-" + Math.floor(100000 + Math.random() * 900000); }
 export function genExpertId() { return "EXP-" + Math.floor(100 + Math.random() * 900); }
 export function genBookingId() { return "BKG-" + Math.floor(100000 + Math.random() * 900000); }
+export function genOtp() { return String(Math.floor(1000 + Math.random() * 9000)); } // 4-Digit Completion OTP
 export function initials(name) { return name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase(); }
 
 // ---- Real-time listeners ----
@@ -186,12 +187,12 @@ export async function setExpertDoc(id, data) { await setDoc(doc(db, "experts", i
 export async function updateExpertDoc(id, partial) { await updateDoc(doc(db, "experts", id), partial); }
 
 export async function setApplicationDoc(id, data) { await setDoc(doc(db, "applications", id), data); }
-export async function updateApplicationDoc(id, partial) { await updateDoc(doc(db, "applications", id), partial); }
+export async function updateApplicationDoc(id, partial) { await updateDoc(doc(doc(db, "applications", id)), partial); }
 
 export async function setBookingDoc(id, data) { await setDoc(doc(db, "bookings", id), data); }
 export async function updateBookingDoc(id, partial) { await updateDoc(doc(db, "bookings", id), partial); }
 
-// ---- Customer ID Helper ----
+// ---- Real-time chat (customer <-> expert) ----
 export function getOrCreateCustomerId() {
   let id = localStorage.getItem("electraman_customer_id");
   if (!id) {
@@ -207,6 +208,7 @@ export function chatId(expertId, customerId) {
 
 // ---- Check Ban Status Before Allowing Chat ----
 export async function checkUserBanStatus(userId) {
+  if (!userId) return;
   const q = query(collection(db, "userViolations"), where("userId", "==", userId));
   const snap = await getDocs(q);
   
@@ -289,7 +291,7 @@ export async function sendChatMessage(expertId, customerId, expertName, sender, 
   });
 }
 
-// ---- Live Listeners for Chat ----
+// Live-listen to a single conversation's messages, oldest first.
 export function listenChatMessages(expertId, customerId, cb) {
   const cid = chatId(expertId, customerId);
   const q = query(collection(db, "chats", cid, "messages"), orderBy("createdAt", "asc"));
@@ -298,6 +300,7 @@ export function listenChatMessages(expertId, customerId, cb) {
   });
 }
 
+// For the expert dashboard: live-listen to all conversations belonging to this expert.
 export function listenExpertChats(expertId, cb) {
   const q = query(collection(db, "chats"), where("expertId", "==", expertId));
   return onSnapshot(q, snap => {
@@ -305,7 +308,36 @@ export function listenExpertChats(expertId, cb) {
   });
 }
 
-// ---- OTP Helper ----
-export function genOtp() {
-  return String(Math.floor(1000 + Math.random() * 9000));
+// ============================================
+// Token Fee — small upfront lock paid before chat unlocks.
+// ============================================
+export const TOKEN_FEE_AMOUNT = 250;
+
+export function tokenFeeId(expertId, customerId) {
+  return `${expertId}__${customerId}`;
+}
+
+export async function submitTokenFee(expertId, customerId, txnId) {
+  const id = tokenFeeId(expertId, customerId);
+  await setDoc(doc(db, "tokenFees", id), {
+    id, expertId, customerId, amount: TOKEN_FEE_AMOUNT, txnId,
+    status: "pending_verification", date: new Date().toISOString()
+  });
+}
+
+export function listenTokenFee(expertId, customerId, cb) {
+  const id = tokenFeeId(expertId, customerId);
+  return onSnapshot(doc(db, "tokenFees", id), snap => {
+    cb(snap.exists() ? snap.data() : null);
+  });
+}
+
+export function listenAllTokenFees(cb) {
+  return onSnapshot(collection(db, "tokenFees"), snap => {
+    cb(snap.docs.map(d => d.data()));
+  });
+}
+
+export async function updateTokenFeeDoc(id, partial) {
+  await updateDoc(doc(db, "tokenFees", id), partial);
 }
