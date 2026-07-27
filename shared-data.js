@@ -111,7 +111,7 @@ export function filterMessage(rawText) {
     };
   }
 
-  // 2. Strict Bypass Protection: Normalize symbols/spaces (e.g. 0/3/0/0, 0.3.0.0, 0 3 0 0, 0_3_0_0)
+  // 2. Strict Bypass Protection: Normalize symbols/spaces
   const normalizedForDigits = rawText.replace(/[\/\.\_\-\,\s]+/g, "");
   const CONCEALED_PHONE_REGEX = /(\+?92|0)?3\d{9}\b|\b\d{10,12}\b/g;
   if (CONCEALED_PHONE_REGEX.test(normalizedForDigits)) {
@@ -121,7 +121,7 @@ export function filterMessage(rawText) {
     };
   }
 
-  // 3. Catch Spelled-out Numbers in Words (e.g., "zero three zero zero...")
+  // 3. Catch Spelled-out Numbers in Words
   const numberWordMatches = lower.match(NUMBER_WORDS_REGEX);
   if (numberWordMatches && numberWordMatches.length >= 7) { 
     return {
@@ -184,13 +184,49 @@ export function listenBookings(cb) {
 
 // ---- Writes ----
 export async function setExpertDoc(id, data) { await setDoc(doc(db, "experts", id), data); }
-export async function updateExpertDoc(id, partial) { await updateDoc(doc(db, "experts", id), partial); }
+export async function updateExpertDoc(id, partial) { await updateDoc(doc(doc(db, "experts", id)), partial); }
 
 export async function setApplicationDoc(id, data) { await setDoc(doc(db, "applications", id), data); }
-export async function updateApplicationDoc(id, partial) { await updateDoc(doc(doc(db, "applications", id)), partial); }
+export async function updateApplicationDoc(id, partial) { await updateDoc(doc(db, "applications", id), partial); }
 
 export async function setBookingDoc(id, data) { await setDoc(doc(db, "bookings", id), data); }
 export async function updateBookingDoc(id, partial) { await updateDoc(doc(db, "bookings", id), partial); }
+
+// ============================================
+// ⭐ REVIEWS & RATING SYSTEM
+// ============================================
+export async function addExpertReview(expertId, customerName, rating, comment) {
+  // 1. Add Review Document to Expert's subcollection
+  await addDoc(collection(db, "experts", expertId, "reviews"), {
+    customerName: customerName || "Anonymous Client",
+    rating: Number(rating),
+    comment: comment.trim(),
+    createdAt: new Date().toISOString()
+  });
+
+  // 2. Fetch all reviews to recalculate Average Rating
+  const reviewsSnap = await getDocs(collection(db, "experts", expertId, "reviews"));
+  let totalStars = 0;
+  reviewsSnap.docs.forEach(docSnap => {
+    totalStars += docSnap.data().rating;
+  });
+
+  const reviewCount = reviewsSnap.size;
+  const avgRating = (totalStars / reviewCount).toFixed(1);
+
+  // 3. Update Expert's main Document with new stats
+  await updateDoc(doc(db, "experts", expertId), {
+    rating: Number(avgRating),
+    totalReviews: reviewCount
+  });
+}
+
+export function listenExpertReviews(expertId, cb) {
+  const q = query(collection(db, "experts", expertId, "reviews"), orderBy("createdAt", "desc"));
+  return onSnapshot(q, snap => {
+    cb(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+  });
+}
 
 // ---- Real-time chat (customer <-> expert) ----
 export function getOrCreateCustomerId() {
