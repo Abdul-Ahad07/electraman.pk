@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="ur" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>الیکٹرا مین | آن ڈیمانڈ الیکٹریکل ماہرین</title>
+<link rel="stylesheet" href="styles.css">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  body {
+    font-family: 'Noto Nastaliq Urdu', serif, sans-serif;
+  }
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand"><span class="bolt">⚡</span>الیکٹرا مین</div>
+  <nav class="nav-links">
+    <a href="expert.html">ماہر</a>
+    <a href="https://wa.me/923006854609?text=" target="_blank">ہم سے رابطہ کریں</a>
+  </nav>
+</header>
+
+<section class="hero">
+  <span class="eyebrow">پورے پاکستان میں سروس کی فراہمی</span>
+  <h1>آن ڈیمانڈ <span>الیکٹریکل</span> ماہرین،<br>بالکل آپ کے دروازے پر</h1>
+  <p>اپنا علاقہ منتخب کریں، قریبی تصدیق شدہ الیکٹریشنز سے رابطہ کریں، ریٹ طے کرنے کے لیے چیٹ کریں اور بکنگ کریں — سب کچھ ایک ہی جگہ پر۔</p>
+  <div class="trace"></div>
+</section>
+
+<section class="finder-wrap">
+  <div class="panel">
+    <div class="section-title">قریبی ماہر تلاش کریں</div>
+    <div class="section-sub">اپنا صوبہ، شہر اور گلی کا پتہ منتخب کریں۔</div>
+
+    <button class="btn btn-outline btn-block" id="locateBtn" onclick="useMyLocation()" style="margin-bottom:18px;">📍 میری لائیو لوکیشن استعمال کریں (آٹو فل)</button>
+    <div id="locateStatus" class="notice" style="display:none;"></div>
+
+    <div class="field-row">
+      <div class="field">
+        <label for="province">صوبہ منتخب کریں</label>
+        <select id="province" onchange="onProvinceChange()">
+          <option value="">-- صوبہ منتخب کریں --</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="city">شہر منتخب کریں — نام لکھ کر تلاش کریں</label>
+        <input type="text" id="city" list="cityList" placeholder="-- پہلے صوبہ منتخب کریں --" disabled oninput="onCityInput()">
+        <datalist id="cityList"></datalist>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field" style="flex:1 1 100%;">
+        <label for="area">مخصوص علاقہ / گلی کا پتہ</label>
+        <input type="text" id="area" placeholder="مثال: بلاک سی، ماڈل ٹاؤن">
+        <div id="addressWarning" class="notice warn" style="display:none; margin-top:8px;"></div>
+      </div>
+    </div>
+
+    <button class="btn btn-block" id="findBtn" onclick="findElectricians()" disabled>قریبی الیکٹریشن تلاش کریں </button>
+
+    <div class="results" id="results">
+      <div class="empty-state">اپنے قریب تصدیق شدہ ماہرین دیکھنے کے لیے لوکیشن کی تفصیلات منتخب کریں۔</div>
+    </div>
+  </div>
+
+  <div class="chat-box" id="chatBox" style="display:none;">
+    <div class="chat-header"><span class="dot"></span> <span id="chatExpertName">ماہر</span> کے ساتھ چیٹ</div>
+    <div class="chat-log" id="chatLog"></div>
+    <div id="quickReplies" style="display:flex; flex-wrap:wrap; gap:8px; padding:12px 18px 0; background:var(--charcoal-2);"></div>
+    <div class="chat-input-row">
+      <textarea id="chatInput" placeholder="پیغام لکھیں... (رابطہ نمبر دینا منع ہے)"></textarea>
+      <button class="btn btn-sm" onclick="sendMessage()">بھیجیں</button>
+    </div>
+    <div class="confirm-row">
+      <div class="field" style="flex:1; min-width:180px;">
+        <label style="font-size:0.78rem;">جو ریٹ چیٹ میں طے ہوا، وہ یہاں لکھیں (روپے)</label>
+        <input type="text" id="agreedAmount" placeholder="مثال: 900">
+      </div>
+      <button class="btn btn-success" onclick="openPaymentModal()">پیمنٹ کریں اور بکنگ تصدیق کریں</button>
+    </div>
+  </div>
+
+  <div class="panel" id="myBookingsPanel" style="margin-top:30px; display:none;">
+    <div class="section-title">میری بکنگز</div>
+    <div class="section-sub">کام مکمل ہونے پر اپنا "جاب کمپلیٹیشن کوڈ" اپنے الیکٹریشن کے ساتھ شیئر کریں۔ کوڈ ملنے کے بعد ہی آپ کی پیمنٹ ریلیز کی جائے گی۔</div>
+    <div id="myBookingsList"></div>
+  </div>
+</section>
+
+<!-- UPDATED FOOTER WITH TIKTOK BUTTON -->
+<footer style="text-align:center; padding:24px 20px; border-top:1px solid var(--circuit-line);">
+  الیکٹرا مین — ڈیمو بلڈ۔ <span id="fbStatus" style="color:var(--muted);">🟡 فائر بیس سے رابطہ قائم کیا جا رہا ہے...</span>
+
+  <div style="margin-top:16px;">
+    <a href="https://www.tiktok.com/@imransahoo55?_r=1&_t=ZS-98RXTbOXsq0" target="_blank" class="btn btn-outline" style="display:inline-flex; align-items:center; gap:8px;">
+      <span style="font-size:18px;">🎵</span>
+      TikTok
+    </a>
+  </div>
+</footer>
+
+<!-- Payment Modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div id="paymentStep">
+      <div class="section-title">پیمنٹ مکمل کریں</div>
+      <p style="color:var(--muted); font-size:0.85rem; margin-top:6px;">
+        کیو آر کوڈ اسکین کریں یا دیے گئے ٹِل نمبر پر <span id="payAmount" style="color:var(--amber);">روپے 0</span> بھیجیں، پھر ٹرانزیکشن آئی ڈی نیچے درج کریں۔
+      </p>
+      <img id="qrImg" src="" alt="پیمنٹ کیو آر کوڈ" style="width:160px; height:160px; margin:16px auto; display:block; border-radius:8px; border:1px solid var(--circuit-line);">
+      <div class="booking-id" id="tillDisplay" style="font-size:0.95rem;">ٹِل: --</div>
+      <div class="notice warn" style="text-align:right;">یہ ڈیمو ٹِل/کیو آر ہے — جب کلائنٹ اصلی جاز کیش یا ایزی پیسہ ٹِل دے گا تو یہاں اپ ڈیٹ ہو جائے گا۔</div>
+      <div class="field" style="text-align:right; margin-bottom:14px;">
+        <label>ٹرانزیکشن آئی ڈی (جاز کیش یا ایزی پیسہ سے ملے گی)</label>
+        <input type="text" id="txnId" placeholder="مثال: 8823471190">
+      </div>
+      <button class="btn btn-block btn-success" onclick="submitPayment()">میں نے پے کر دیا ہے — بکنگ تصدیق کریں</button>
+    </div>
+
+    <div id="confirmStep" style="display:none;">
+      <div class="icon-circle">✓</div>
+      <div class="section-title">بکنگ لاک ہو گئی ہے</div>
+      <p style="color:var(--muted); font-size:0.88rem; margin-top:6px;">پیمنٹ کی تصدیق کے بعد ماہر کی روانگی کی تصدیق کر دی جائے گی۔ کام مکمل ہونے پر ماہر کو اپنا "جاب کمپلیٹیشن کوڈ" دیں — وہی پیمنٹ ریلیز کرے گا۔</p>
+      <div class="booking-id" id="bookingIdDisplay">BKG-000</div>
+      <span class="pill pending">پیمنٹ: تصدیق کی منتظر ہے</span>
+      <button class="btn btn-block" style="margin-top:16px;" onclick="closeModal()">ہو گیا</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import {
+  LOCATIONS, DUMMY_TILL, getTillQrUrl, genBookingId, initials,
+  listenExperts, listenBookings, setBookingDoc,
+  getOrCreateCustomerId, sendChatMessage, listenChatMessages,
+  validateAddressAgainstCity, getActiveBookingForExpert,
+  CUSTOMER_QUICK_REPLIES
+} from "./shared-data.js";
+import { showToast } from "./toast.js";
+
+const myCustomerId = getOrCreateCustomerId();
+let chatUnsub = null;
+let expertsCache = [];
+let bookingsCache = [];
+let selectedExpert = null;
+
+const provinceSelect = document.getElementById("province");
+Object.keys(LOCATIONS).forEach(p => {
+  const opt = document.createElement("option");
+  opt.value = p; opt.textContent = p;
+  provinceSelect.appendChild(opt);
+});
+
+listenExperts(
+  list => {
+    expertsCache = list;
+    const badge = document.getElementById("fbStatus");
+    if (badge) { badge.textContent = "🟢 لائیو — فائر بیس جڑ گیا ہے"; badge.style.color = "var(--success)"; }
+  },
+  err => {
+    const badge = document.getElementById("fbStatus");
+    if (badge) { badge.textContent = "🔴 فائر بیس کنکشن میں خرابی — " + err.message; badge.style.color = "var(--danger)"; }
+  }
+);
+listenBookings(list => {
+  bookingsCache = list;
+  renderMyBookings();
+});
+
+window.onProvinceChange = function () {
+  const province = provinceSelect.value;
+  const cityInput = document.getElementById("city");
+  const cityList = document.getElementById("cityList");
+  cityInput.value = "";
+  cityList.innerHTML = "";
+  document.getElementById("findBtn").disabled = true;
+  document.getElementById("results").innerHTML = '<div class="empty-state">اپنے قریب تصدیق شدہ ماہرین دیکھنے کے لیے لوکیشن کی تفصیلات منتخب کریں۔</div>';
+
+  if (!province) {
+    cityInput.disabled = true;
+    cityInput.placeholder = "-- پہلے صوبہ منتخب کریں --";
+    return;
+  }
+  cityInput.disabled = false;
+  cityInput.placeholder = "شہر تلاش کرنے کے لیے لکھیں...";
+  LOCATIONS[province].forEach(c => {
+    const opt = document.createElement("option");
+    opt.value = c;
+    cityList.appendChild(opt);
+  });
+};
+
+window.onCityInput = function () {
+  const province = provinceSelect.value;
+  const city = document.getElementById("city").value.trim();
+  const valid = province && LOCATIONS[province].some(c => c.toLowerCase() === city.toLowerCase());
+  document.getElementById("findBtn").disabled =!valid;
+};
+
+window.findElectricians = function () {
+  const province = provinceSelect.value;
+  const cityRaw = document.getElementById("city").value.trim();
+  const city = (LOCATIONS[province] || []).find(c => c.toLowerCase() === cityRaw.toLowerCase());
+  const area = document.getElementById("area").value.trim();
+  const resultsDiv = document.getElementById("results");
+  const warnDiv = document.getElementById("addressWarning");
+
+  if (!city) {
+    resultsDiv.innerHTML = '<div class="empty-state">براہ کرم فہرست میں سے کوئی ایک درست شہر منتخب کریں۔</div>';
+    return;
+  }
+
+  const addrCheck = validateAddressAgainstCity(city, area);
+  if (!addrCheck.valid) {
+    warnDiv.style.display = "block";
+    warnDiv.textContent = addrCheck.reason;
+    resultsDiv.innerHTML = "";
+    return;
+  }
+  warnDiv.style.display = "none";
+
+  const matches = expertsCache.filter(e => e.province === province && e.city === city && e.verified);
+
+  if (matches.length === 0) {
+    resultsDiv.innerHTML = `<div class="empty-state">فی الحال اس علاقے (${city}) میں کوئی رجسٹرڈ ماہر نہیں ملا۔ کوئی قریبی شہر تلاش کریں۔</div>`;
+    return;
+  }
+
+  resultsDiv.innerHTML = matches.map(e => {
+    const activeBooking = getActiveBookingForExpert(e.id, bookingsCache);
+    const isBooked =!!activeBooking;
+    return `
+    <div class="expert-card" style="${isBooked? 'opacity:0.55;' : ''}">
+      <div class="expert-info">
+        <div class="avatar">${initials(e.name)}</div>
+        <div>
+          <div class="expert-name">${e.name} <span class="badge-verified">✓ تصدیق شدہ</span> ${isBooked? '<span class="pill pending">بک ہے</span>' : '<span class="pill approved">دستیاب ہے</span>'}</div>
+          <div class="expert-meta">${e.specialty} · ★ ${e.rating} · ${e.jobs} کام مکمل ہوئے</div>
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; gap:14px;">
+        ${isBooked
+       ? `<button class="btn btn-sm btn-outline" disabled>فی الحال بک ہے</button>`
+          : `<button class="btn btn-sm" onclick='window.startChat(${JSON.stringify(e)})'>چیٹ کریں</button>`
+        }
+      </div>
+    </div>
+  `}).join("");
+};
+
+window.startChat = function (expert) {
+  selectedExpert = expert;
+  openChatUI(expert);
+};
+
+function openChatUI(expert) {
+  document.getElementById("chatBox").style.display = "block";
+  document.getElementById("chatExpertName").textContent = expert.name;
+  document.getElementById("chatLog").innerHTML = '<div class="empty-state">چیٹ شروع کریں — آپ کا پیغام ماہر کو لائیو ملے گا۔</div>';
+  document.getElementById("chatBox").scrollIntoView({ behavior: "smooth" });
+
+  const qDiv = document.getElementById("quickReplies");
+  qDiv.innerHTML = CUSTOMER_QUICK_REPLIES.map(q => `<button class="btn btn-sm btn-outline" data-quick="${q.replace(/"/g, '&quot;')}">${q}</button>`).join("");
+  qDiv.querySelectorAll("[data-quick]").forEach(btn => {
+    btn.onclick = () => sendRawMessage(btn.dataset.quick);
+  });
+
+  if (chatUnsub) chatUnsub();
+  chatUnsub = listenChatMessages(expert.id, myCustomerId, (messages) => {
+    const log = document.getElementById("chatLog");
+    if (messages.length === 0) {
+      log.innerHTML = '<div class="empty-state">چیٹ شروع کریں — آپ کا پیغام ماہر کو لائیو ملے گا۔</div>';
+      return;
+    }
+    log.innerHTML = messages.map(m => `
+      <div class="msg ${m.sender === 'customer'? 'me' : 'them'}">${m.text}</div>
+    `).join("");
+    log.scrollTop = log.scrollHeight;
+  });
+}
+
+async function sendRawMessage(text) {
+  if (!text ||!selectedExpert) return;
+  try {
+    await sendChatMessage(selectedExpert.id, myCustomerId, selectedExpert.name, "customer", text);
+  } catch (err) {
+    showToast(err.message, "error");
+  }
+}
+
+window.sendMessage = async function () {
+  const input = document.getElementById("chatInput");
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = "";
+  await sendRawMessage(text);
+};
+
+window.openPaymentModal = function () {
+  if (!selectedExpert) return;
+  const amount = parseInt(document.getElementById("agreedAmount").value.trim());
+  if (!amount || amount <= 0) { showToast("پہلے 'جو ریٹ چیٹ میں طے ہوا' والی رقم درج کریں۔", "error"); return; }
+  document.getElementById("paymentStep").style.display = "block";
+  document.getElementById("confirmStep").style.display = "none";
+  document.getElementById("payAmount").textContent = "روپے " + amount;
+  document.getElementById("tillDisplay").textContent = `${DUMMY_TILL.provider} ٹِل: ${DUMMY_TILL.number} (${DUMMY_TILL.accountTitle})`;
+  document.getElementById("qrImg").src = getTillQrUrl();
+  document.getElementById("txnId").value = "";
+  document.getElementById("modalOverlay").classList.add("active");
+};
+
+window.submitPayment = async function () {
+  const txnId = document.getElementById("txnId").value.trim();
+  if (!txnId) { showToast("ٹرانزیکشن آئی ڈی درج کریں — پیمنٹ کی تصدیق اسی سے ہوگی۔", "error"); return; }
+  const amount = parseInt(document.getElementById("agreedAmount").value.trim());
+
+  const id = genBookingId();
+  await setBookingDoc(id, {
+    id, expertId: selectedExpert.id, expertName: selectedExpert.name,
+    customerId: myCustomerId,
+    amount, date: new Date().toISOString(),
+    txnId, paymentStatus: "pending_verification", escrowReleased: false
+  });
+
+  document.getElementById("paymentStep").style.display = "none";
+  document.getElementById("confirmStep").style.display = "block";
+  document.getElementById("bookingIdDisplay").textContent = id;
+};
+
+window.closeModal = function () {
+  document.getElementById("modalOverlay").classList.remove("active");
+};
+
+function renderMyBookings() {
+  const mine = bookingsCache.filter(b => b.customerId === myCustomerId);
+  const panel = document.getElementById("myBookingsPanel");
+  const list = document.getElementById("myBookingsList");
+  if (mine.length === 0) { panel.style.display = "none"; return; }
+  panel.style.display = "block";
+
+  list.innerHTML = mine.slice().reverse().map(b => {
+    let statusPill = '<span class="pill pending">پیمنٹ کی تصدیق باقی ہے</span>';
+    if (b.paymentStatus === "verified" &&!b.jobStatus) statusPill = '<span class="pill pending">پیمنٹ ہو گئی — ماہر کی منظوری کا انتظار ہے</span>';
+    if (b.jobStatus === "declined") statusPill = '<span class="pill rejected">ماہر نے انکار کر دیا</span>';
+    if (b.paymentStatus === "verified" && b.jobStatus === "accepted" &&!b.escrowReleased) statusPill = '<span class="pill approved">ماہر کام کر رہا ہے</span>';
+    if (b.escrowReleased) statusPill = '<span class="pill approved">مکمل ہو گیا — پیمنٹ جاری کر دی گئی</span>';
+
+    const showOtp = b.paymentStatus === "verified" && b.jobStatus === "accepted" &&!b.escrowReleased && b.completionOtp;
+    return `
+      <div class="list-item">
+        <div>
+          <b>${b.id}</b><br><span class="expert-meta">${b.expertName} · روپے ${b.amount} · ${new Date(b.date).toLocaleString('ur-PK')}</span><br>${statusPill}
+          ${showOtp? `<div class="notice" style="margin-top:8px;">جاب کمپلیٹیشن کوڈ: <b style="color:var(--amber); font-size:1.05rem;">${b.completionOtp}</b><br>کام مکمل ہونے پر یہ کوڈ اپنے الیکٹریشن کو دیں — وہی پیمنٹ ریلیز کرے گا۔</div>` : ''}
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+function normalizeProvinceName(stateName) {
+  if (!stateName) return null;
+  const s = stateName.toLowerCase();
+  if (s.includes("punjab")) return "Punjab";
+  if (s.includes("sindh")) return "Sindh";
+  if (s.includes("khyber") || s.includes("kpk") || s.includes("pakhtunkhwa")) return "Khyber Pakhtunkhwa (KPK)";
+  if (s.includes("balochistan")) return "Balochistan";
+  if (s.includes("islamabad")) return "Islamabad";
+  return null;
+}
+function findClosestCity(province, cityGuess) {
+  if (!province ||!cityGuess) return null;
+  const list = LOCATIONS[province] || [];
+  const guess = cityGuess.toLowerCase();
+  return list.find(c => c.toLowerCase() === guess) ||
+         list.find(c => guess.includes(c.toLowerCase()) || c.toLowerCase().includes(guess)) ||
+         null;
+}
+
+window.useMyLocation = function () {
+  const statusDiv = document.getElementById("locateStatus");
+  statusDiv.style.display = "block";
+  statusDiv.className = "notice";
+  statusDiv.textContent = "📡 آپ کی لوکیشن معلوم کی جا رہی ہے...";
+
+  if (!navigator.geolocation) {
+    statusDiv.className = "notice warn";
+    statusDiv.textContent = "یہ براؤزر لوکیشن معلوم کرنے کی سہولت فراہم نہیں کرتا۔ براہ کرم دستی طور پر منتخب کریں۔";
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(async (pos) => {
+    const { latitude, longitude } = pos.coords;
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+      const data = await res.json();
+      const addr = data.address || {};
+
+      const province = normalizeProvinceName(addr.state);
+      const cityGuess = addr.city || addr.town || addr.county || addr.state_district || "";
+      const matchedCity = findClosestCity(province, cityGuess);
+      const area = addr.suburb || addr.road || addr.neighbourhood || addr.village || "";
+
+      if (!province) {
+        statusDiv.className = "notice warn";
+        statusDiv.textContent = "آپ کی لوکیشن الیکٹرا مین کے کوریاج ایریا سے باہر معلوم ہوتی ہے۔ براہ کرم خود منتخب کریں۔";
+        return;
+      }
+
+      provinceSelect.value = province;
+      window.onProvinceChange();
+
+      if (matchedCity) {
+        document.getElementById("city").value = matchedCity;
+        window.onCityInput();
+        statusDiv.className = "notice";
+        statusDiv.textContent = `✅ لوکیشن معلوم ہو گئی ہے: ${matchedCity}, ${province}۔ ایریا کا خانہ خود بخود بھر دیا گیا ہے۔`;
+      } else {
+        statusDiv.className = "notice warn";
+        statusDiv.textContent = `صوبہ (${province}) معلوم ہو گیا ہے، لیکن اصل شہر (${cityGuess || "نامعلوم"}) ہماری فہرست میں نہیں ہے۔ شہر خود منتخب کریں۔`;
+      }
+      if (area) document.getElementById("area").value = area;
+
+    } catch (err) {
+      statusDiv.className = "notice warn";
+      statusDiv.textContent = "لوکیشن معلوم نہیں ہو سکی، انٹرنیٹ چیک کریں یا دستی طور پر منتخب کریں۔";
+    }
+  }, () => {
+    statusDiv.className = "notice warn";
+    statusDiv.textContent = "لوکیشن کی اجازت نہیں ملی۔ براہ کرم دستی طور پر منتخب کریں یا اجازت دیں۔";
+  });
+};
+</script>
+</body>
+</html>

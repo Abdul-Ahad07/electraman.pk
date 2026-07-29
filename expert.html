@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="ur" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ماہرین کا پینل | الیکٹرا مین</title>
+<link rel="stylesheet" href="styles.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  body {
+    font-family: 'Noto Nastaliq Urdu', 'Plus Jakarta Sans', serif, sans-serif;
+  }
+</style>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand"><span class="bolt">⚡</span>الیکٹرا مین</div>
+  <nav class="nav-links">
+    <a href="index.html">ہوم</a>
+    <a href="#" id="logoutLink" style="display:none;">لاگ آؤٹ</a>
+  </nav>
+</header>
+
+<div class="login-wrap" id="entryView">
+  <div class="panel login-card">
+    <span class="bolt-big">⚡</span>
+    <div class="section-title">ماہرین کا پینل</div>
+    <div class="section-sub">نئے ماہر کو پہلے اسکریننگ ٹیسٹ دینا ہوتا ہے۔ پہلے سے تصدیق شدہ ماہرین براہ راست لاگ ان کریں۔</div>
+    <button class="btn btn-block" id="btnGoApply" style="margin-bottom:10px;">بطور نیا ماہر اپلائی کریں</button>
+    <button class="btn btn-outline btn-block" id="btnGoLogin">پہلے سے تصدیق شدہ — لاگ ان</button>
+  </div>
+</div>
+
+<div class="login-wrap" id="loginView" style="display:none;">
+  <div class="panel login-card">
+    <span class="bolt-big">⚡</span>
+    <div class="section-title">ماہر کا لاگ ان</div>
+    <div class="notice warn" style="text-align:right;">ڈیمو موڈ: اصلی تصدیق بیک اینڈ سے منسلک نہیں ہے۔</div>
+    <div class="field" style="text-align:right; margin-bottom:12px;">
+      <label>ای میل</label>
+      <input type="email" id="expEmail" value="demo@expert.com">
+    </div>
+    <div class="field" style="text-align:right; margin-bottom:16px;">
+      <label>پاس ورڈ</label>
+      <input type="password" id="expPass" value="demo123">
+    </div>
+    <button class="btn btn-block" id="btnLogin">سائن ان کریں</button>
+    <button class="btn btn-outline btn-block" style="margin-top:10px;" id="btnBackFromLogin">← واپس</button>
+  </div>
+</div>
+
+<div class="dash-wrap" id="applyView" style="display:none; max-width:640px;">
+  <div class="panel">
+    <div class="section-title">نئے ماہر کی درخواست</div>
+    <div class="section-sub">تفصیلات پُر کریں اور اسکریننگ کے سوالات کے جواب دیں۔ جمع کرانے کے بعد ایڈمن جائزہ لے گا۔</div>
+
+    <div class="field-row">
+      <div class="field"><label>پورا نام</label><input type="text" id="apName" placeholder="محمد علی"></div>
+      <div class="field"><label>شناختی کارڈ نمبر - 13 ہندسے</label><input type="text" id="apCnic" placeholder="مثال: 3410112345671"></div>
+    </div>
+
+    <div class="field-row">
+      <div class="field"><label>فون نمبر - 11 ہندسے</label><input type="text" id="apPhone" placeholder="مثال: 03001234567"></div>
+      <div class="field"><label>تجربہ (سالوں میں)</label><input type="text" id="apExp" placeholder="مثال: 4"></div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>صوبہ</label>
+        <select id="apProvince"><option value="">-- منتخب کریں --</option></select>
+      </div>
+      <div class="field">
+        <label>شہر — تلاش کرنے کے لیے ٹائپ کریں</label>
+        <input type="text" id="apCity" list="apCityList" placeholder="-- پہلے صوبہ منتخب کریں --" disabled>
+        <datalist id="apCityList"></datalist>
+      </div>
+    </div>
+    <div class="field" style="margin-bottom:20px;">
+      <label>تخصصی مہارت</label>
+      <input type="text" id="apSpecialty" placeholder="مثال: گھر کی وائرنگ، انورٹر سیٹ اپ">
+    </div>
+
+    <div class="section-title" style="font-size:1rem;">اسکریننگ کے سوالات</div>
+    <div class="section-sub">دیے گئے سوالات کے سامنے خالی جگہ میں اپنا جواب درج کریں۔</div>
+
+    <div class="panel" style="background:var(--charcoal-2); margin-bottom:12px; padding:16px;">
+      <div style="font-weight:700; margin-bottom:8px; font-size:0.92rem;">سوال 1: ایک کلو واٹ میں کتنے واٹ ہوتے ہیں؟</div>
+      <input type="text" id="customQ1" class="custom-ans-input" placeholder="یہاں جواب لکھیں..." style="width:100%; padding:8px; border-radius:6px; border:1px solid var(--border); background:var(--charcoal-1); color:inherit;">
+    </div>
+
+    <div class="panel" style="background:var(--charcoal-2); margin-bottom:12px; padding:16px;">
+      <div style="font-weight:700; margin-bottom:8px; font-size:0.92rem;">سوال 2: ایمپیئر سے واٹ کیسے معلوم کیے جاتے ہیں؟</div>
+      <input type="text" id="customQ2" class="custom-ans-input" placeholder="یہاں جواب لکھیں..." style="width:100%; padding:8px; border-radius:6px; border:1px solid var(--border); background:var(--charcoal-1); color:inherit;">
+    </div>
+
+    <div class="panel" style="background:var(--charcoal-2); margin-bottom:12px; padding:16px;">
+      <div style="font-weight:700; margin-bottom:8px; font-size:0.92rem;">سوال 3: واٹ سے ایمپیئر کیسے معلوم ہوتے ہیں؟</div>
+      <input type="text" id="customQ3" class="custom-ans-input" placeholder="یہاں جواب لکھیں..." style="width:100%; padding:8px; border-radius:6px; border:1px solid var(--border); background:var(--charcoal-1); color:inherit;">
+    </div>
+
+    <div class="panel" style="background:var(--charcoal-2); margin-bottom:12px; padding:16px;">
+      <div style="font-weight:700; margin-bottom:8px; font-size:0.92rem;">سوال 4: وولٹ کسے کہتے ہیں؟</div>
+      <input type="text" id="customQ4" class="custom-ans-input" placeholder="یہاں جواب لکھیں..." style="width:100%; padding:8px; border-radius:6px; border:1px solid var(--border); background:var(--charcoal-1); color:inherit;">
+    </div>
+
+    <div class="field" style="margin: 6px 0 20px;">
+      <label>اپنا تجربہ مختصراً بتائیں</label>
+      <textarea id="apExpText" style="height:70px;" placeholder="کتنے سال، کس قسم کا کام کر چکے ہیں..."></textarea>
+    </div>
+
+    <button class="btn btn-block" id="btnSubmitApp">درخواست جمع کروائیں</button>
+    <button class="btn btn-outline btn-block" style="margin-top:10px;" id="btnBackFromApply">← واپس</button>
+  </div>
+</div>
+
+<div class="login-wrap" id="underReviewView" style="display:none;">
+  <div class="panel login-card">
+    <span class="bolt-big">⏳</span>
+    <div class="section-title">درخواست زیر غور ہے</div>
+    <p style="color:var(--muted); font-size:0.9rem; margin-top:8px;">آپ کی درخواست ایڈمن کے پاس جائزے کے لیے چلی گئی ہے۔ منظور ہوتے ہی آپ یہاں واپس آکر اپنا گگ شائع کر سکیں گے۔</p>
+    <div class="booking-id" id="myAppId">APP-000</div>
+    <button class="btn btn-block" style="margin-top:10px;" id="btnRefreshStatus">حالت ریفریش کریں</button>
+  </div>
+</div>
+
+<div class="login-wrap" id="rejectedView" style="display:none;">
+  <div class="panel login-card">
+    <span class="bolt-big" style="color:var(--danger);">✕</span>
+    <div class="section-title">درخواست منظور نہیں ہوئی</div>
+    <p style="color:var(--muted); font-size:0.9rem; margin-top:8px;">اس بار آپ کی درخواست منظور نہیں ہو سکی۔ آپ اپنا پروفائل بہتر کرکے دوبارہ اپلائی کر سکتے ہیں۔</p>
+    <button class="btn btn-block" style="margin-top:14px;" id="btnApplyAgain">دوبارہ اپلائی کریں</button>
+  </div>
+</div>
+
+<div class="dash-wrap" id="gigBuilderView" style="display:none; max-width:560px;">
+  <div class="panel">
+    <div class="notice" style="text-align:right;">✅ منظور شدہ! اب اپنا گگ شائع کریں تاکہ کسٹمرز آپ کو تلاش کر سکیں۔</div>
+    <div class="section-title">اپنا گگ بنائیں</div>
+    <div class="field" style="margin-bottom:14px;">
+      <label>سروس / گگ کا عنوان</label>
+      <input type="text" id="gigTitle" placeholder="مثال: ماسٹر ہاؤس وائرنگ اور ڈی بی فٹنگ اسپیشلسٹ">
+    </div>
+    <div class="field" style="margin-bottom:14px;">
+      <label>ریٹ کا کوئی فکسڈ نمبر ابھی ضروری نہیں — ہر کسٹمر سے چیٹ میں ریٹ طے ہوگا۔</label>
+    </div>
+    <div class="field" style="margin-bottom:20px;">
+      <label>تفصیل</label>
+      <textarea id="gigDesc" style="height:80px;" placeholder="اپنی سروسز کی مختصر تفصیل لکھیں"></textarea>
+    </div>
+    <button class="btn btn-block" id="btnPublishGig">گگ شائع کریں — لائیو جائیں</button>
+  </div>
+</div>
+
+<div class="dash-wrap" id="dashView" style="display:none;">
+  <div class="section-title" style="font-size:1.4rem; margin-bottom:2px;" id="dashWelcome">خوش آمدید</div>
+  <div class="section-sub" id="dashSub"></div>
+  <div id="myAvailabilityPill" style="margin-bottom:16px;"></div>
+  <div class="stat-grid" id="statGrid"></div>
+
+  <div class="panel" style="margin-bottom:20px;">
+    <div class="section-title">کمائی اور ادائیگیاں</div>
+    <div class="section-sub">مکمل ہونے والے کاموں کا بیلنس یہاں شو ہوتا ہے۔ پے آؤٹ ریکوئست بھیج کر بیلنس نکلوائیں۔</div>
+
+    <div style="display:flex; justify-content:space-between; align-items:center; background:var(--charcoal-2); padding:16px; border-radius:8px; margin-top:10px;">
+      <div>
+        <span style="font-size:0.85rem; color:var(--muted);">دستیاب بیلنس</span>
+        <div style="font-size:1.6rem; font-weight:700; color:var(--success);" id="expertBalanceDisplay">روپے 0</div>
+      </div>
+      <button class="btn btn-sm" id="btnOpenPayoutModal">رقم کی درخواست کریں</button>
+    </div>
+
+    <div id="payoutFormArea" style="display:none; margin-top:16px; padding:16px; border:1px solid var(--border); border-radius:8px; background:var(--charcoal-1);">
+      <div style="font-weight:700; margin-bottom:8px;">رقم نکلوائیں</div>
+      <div class="field-row">
+        <div class="field">
+          <label>ادائیگی کا طریقہ</label>
+          <select id="poMethod">
+            <option value="JazzCash">جاز کیش</option>
+            <option value="Easypaisa">ایزی پیسہ</option>
+            <option value="Bank Transfer">بینک ٹرانسفر</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>اکاؤنٹ نمبر</label>
+          <input type="text" id="poAccount" placeholder="مثال: 03001234567">
+        </div>
+      </div>
+      <div class="field" style="margin-top:8px;">
+        <label>رقم (روپے)</label>
+        <input type="number" id="poAmount" placeholder="رقم درج کریں">
+      </div>
+      <div style="display:flex; gap:10px; margin-top:12px;">
+        <button class="btn btn-sm btn-success" id="btnSubmitPayout">درخواست جمع کروائیں</button>
+        <button class="btn btn-sm btn-outline" id="btnCancelPayout">منسوخ کریں</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-bottom:20px;">
+    <div class="section-title">آمدہ جاب کی درخواستیں</div>
+    <div class="section-sub">گاہکوں کی طرف سے تصدیق شدہ بکنگ یہاں ظاہر ہوتی ہیں — تمام ڈیوائسز پر لائیو اپ ڈیٹ ہوتی ہیں۔</div>
+    <div id="requestsList"></div>
+  </div>
+
+  <div class="panel">
+    <div class="section-title">گاہکوں کے پیغامات</div>
+    <div class="section-sub">لائیو چیٹ — گاہک بکنگ سے پہلے رابطہ کرتے ہیں۔</div>
+    <div style="display:flex; gap:16px; flex-wrap:wrap;">
+      <div style="flex:1 1 200px;">
+        <div id="chatList"></div>
+      </div>
+      <div style="flex:2 1 320px; display:none;" id="chatPanel">
+        <div class="chat-box" style="margin-top:0;">
+          <div class="chat-header"><span class="dot"></span> چیٹ برائے <span id="activeCustomerLabel">گاہک</span></div>
+          <div class="chat-log" id="expChatLog"></div>
+          <div id="expQuickReplies" style="display:flex; flex-wrap:wrap; gap:8px; padding:12px 18px 0; background:var(--charcoal-2);"></div>
+          <div class="chat-input-row">
+            <textarea id="expChatInput" placeholder="جواب لکھیں (رابطہ کی معلومات کی اجازت نہیں ہے)"></textarea>
+            <button class="btn btn-sm" id="btnExpSend">ارسال کریں</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>الیکٹرا مین — ڈیمو بلڈ۔ <span id="fbStatus" style="color:var(--muted);">🟡 فائر بیس سے رابطہ ہو رہا ہے...</span></footer>
+
+<script type="module">
+import {
+  LOCATIONS, genApplicationId, genExpertId,
+  listenApplications, listenExperts, listenBookings,
+  setApplicationDoc, setExpertDoc, updateApplicationDoc, updateBookingDoc, updateExpertDoc,
+  listenExpertChats, listenChatMessages, sendChatMessage,
+  getActiveBookingForExpert, EXPERT_QUICK_REPLIES, genOtp
+} from "./shared-data.js";
+import { showToast } from "./toast.js";
+import { db, collection, addDoc } from "./firebase-init.js";
+
+let applicationsCache = [];
+let expertsCache = [];
+let bookingsCache = [];
+let expertChatsCache = [];
+let activeExpertId = null;
+let activeChatCustomerId = null;
+let chatMsgUnsub = null;
+
+listenApplications(list => { applicationsCache = list; checkStatus(); });
+listenExperts(
+  list => {
+    expertsCache = list; renderDashboard();
+    const badge = document.getElementById("fbStatus");
+    if (badge) { badge.textContent = "🟢 لائیو — فائر بیس منسلک ہے"; badge.style.color = "var(--success)"; }
+  },
+  err => {
+    const badge = document.getElementById("fbStatus");
+    if (badge) { badge.textContent = "🔴 فائر بیس کنکشن کی خرابی — " + err.message; badge.style.color = "var(--danger)"; }
+  }
+);
+listenBookings(list => { bookingsCache = list; renderDashboard(); });
+
+function showView(id) {
+  ["entryView","loginView","applyView","underReviewView","rejectedView","gigBuilderView","dashView"]
+  .forEach(v => document.getElementById(v).style.display = (v === id? "block" : "none"));
+  document.getElementById("logoutLink").style.display = (id === "dashView" || id === "gigBuilderView")? "inline" : "none";
+}
+
+document.getElementById("btnGoApply").onclick = () => showView("applyView");
+document.getElementById("btnGoLogin").onclick = () => showView("loginView");
+document.getElementById("btnBackFromLogin").onclick = () => showView("entryView");
+document.getElementById("btnBackFromApply").onclick = () => showView("entryView");
+document.getElementById("logoutLink").onclick = (e) => { e.preventDefault(); resetSession(); };
+document.getElementById("btnApplyAgain").onclick = () => resetSession();
+document.getElementById("btnRefreshStatus").onclick = () => checkStatus();
+
+function resetSession() {
+  localStorage.removeItem("electraman_my_application_id");
+  showView("entryView");
+}
+
+const apProvinceSelect = document.getElementById("apProvince");
+Object.keys(LOCATIONS).forEach(p => {
+  const opt = document.createElement("option");
+  opt.value = p; opt.textContent = p;
+  apProvinceSelect.appendChild(opt);
+});
+apProvinceSelect.addEventListener("change", () => {
+  const cityInput = document.getElementById("apCity");
+  const cityList = document.getElementById("apCityList");
+  const province = apProvinceSelect.value;
+  cityInput.value = "";
+  cityList.innerHTML = "";
+  if (!province) {
+    cityInput.disabled = true;
+    cityInput.placeholder = "-- پہلے صوبہ منتخب کریں --";
+    return;
+  }
+  cityInput.disabled = false;
+  cityInput.placeholder = "شہر تلاش کرنے کے لیے ٹائپ کریں...";
+  LOCATIONS[province].forEach(c => {
+    const opt = document.createElement("option");
+    opt.value = c;
+    cityList.appendChild(opt);
+  });
+});
+
+document.getElementById("btnSubmitApp").onclick = async () => {
+  const name = document.getElementById("apName").value.trim();
+  const cnic = document.getElementById("apCnic").value.trim();
+  const phone = document.getElementById("apPhone").value.trim();
+  const province = apProvinceSelect.value;
+  const cityRaw = document.getElementById("apCity").value.trim();
+  const city = (LOCATIONS[province] || []).find(c => c.toLowerCase() === cityRaw.toLowerCase());
+  const specialty = document.getElementById("apSpecialty").value.trim();
+  const expYears = document.getElementById("apExp").value.trim();
+  const expText = document.getElementById("apExpText").value.trim();
+
+  const ans1 = document.getElementById("customQ1").value.trim();
+  const ans2 = document.getElementById("customQ2").value.trim();
+  const ans3 = document.getElementById("customQ3").value.trim();
+  const ans4 = document.getElementById("customQ4").value.trim();
+
+  if (!name ||!cnic ||!phone ||!province ||!city ||!specialty ||!expText) {
+    showToast("براہ کرم تمام فیلڈز درست طریقے سے پُر کریں (فہرست میں سے شہر منتخب کریں)۔", "error");
+    return;
+  }
+
+  if (!ans1 ||!ans2 ||!ans3 ||!ans4) {
+    showToast("براہ کرم اسکریننگ کے تمام سوالات کے جوابات درج کریں۔", "error");
+    return;
+  }
+
+  const cleanCnic = cnic.replace(/-/g, '');
+  if (!/^\d{13}$/.test(cleanCnic)) {
+    showToast("خرابی: شناختی کارڈ بالکل 13 ہندسوں کا ہونا چاہیے۔", "error");
+    return;
+  }
+
+  const cleanPhone = phone.replace(/-/g, '');
+  if (!/^03\d{9}$/.test(cleanPhone)) {
+    showToast("خرابی: فون نمبر بالکل 11 ہندسوں کا اور '03' سے شروع ہونا چاہیے۔", "error");
+    return;
+  }
+
+  try {
+    const id = genApplicationId();
+    await setApplicationDoc(id, {
+      id, name, cnic: cleanCnic, phone: cleanPhone, province, city, specialty,
+      experienceYears: expYears,
+      screeningAnswers: [ans1, ans2, ans3, ans4],
+      experienceText: expText,
+      callVerified: false,
+      adminNotes: "",
+      status: "pending", appliedAt: new Date().toISOString(), gigPublished: false
+    });
+
+    localStorage.setItem("electraman_my_application_id", id);
+    document.getElementById("myAppId").textContent = id;
+    showView("underReviewView");
+  } catch (err) {
+    showToast("درخواست جمع کرانے میں خرابی پیش آئی: " + err.message, "error");
+  }
+};
+
+function checkStatus() {
+  const appId = localStorage.getItem("electraman_my_application_id");
+  if (!appId) return;
+  const app = applicationsCache.find(a => a.id === appId);
+  if (!app) return;
+
+  if (app.status === "pending") {
+    document.getElementById("myAppId").textContent = app.id;
+    showView("underReviewView");
+  } else if (app.status === "rejected") {
+    showView("rejectedView");
+  } else if (app.status === "approved") {
+    if (app.gigPublished) {
+      activeExpertId = app.expertId;
+      showView("dashView");
+      renderDashboard();
+      subscribeExpertChats();
+    } else {
+      showView("gigBuilderView");
+    }
+  }
+}
+
+document.getElementById("btnPublishGig").onclick = async () => {
+  const title = document.getElementById("gigTitle").value.trim();
+  const desc = document.getElementById("gigDesc").value.trim();
+  if (!title) { showToast("گ کا عنوان ضروری ہے۔", "error"); return; }
+
+  const appId = localStorage.getItem("electraman_my_application_id");
+  const app = applicationsCache.find(a => a.id === appId);
+  const newId = genExpertId();
+
+  await setExpertDoc(newId, {
+    id: newId, name: app.name, province: app.province, city: app.city,
+    specialty: title, rating: 5.0, jobs: 0, verified: true, description: desc, balance: 0
+  });
+  await updateApplicationDoc(appId, { gigPublished: true, expertId: newId });
+
+  activeExpertId = newId;
+  showView("dashView");
+  renderDashboard();
+  subscribeExpertChats();
+};
+
+document.getElementById("btnLogin").onclick = () => {
+  const email = document.getElementById("expEmail").value.trim();
+  const pass = document.getElementById("expPass").value.trim();
+  if (!email ||!pass) { showToast("ای میل اور پاس ورڈ دونوں ضروری ہیں۔", "error"); return; }
+  activeExpertId = "EXP-101";
+  showView("dashView");
+  renderDashboard();
+  subscribeExpertChats();
+};
+
+document.getElementById("btnOpenPayoutModal").onclick = () => {
+  document.getElementById("payoutFormArea").style.display = "block";
+};
+document.getElementById("btnCancelPayout").onclick = () => {
+  document.getElementById("payoutFormArea").style.display = "none";
+};
+
+document.getElementById("btnSubmitPayout").onclick = async () => {
+  const method = document.getElementById("poMethod").value;
+  const account = document.getElementById("poAccount").value.trim();
+  const amount = Number(document.getElementById("poAmount").value);
+  const expert = expertsCache.find(e => e.id === activeExpertId);
+
+  if (!account ||!amount || amount <= 0) {
+    showToast("براہ کرم درست اکاؤنٹ کی تفصیلات اور رقم درج کریں۔", "error");
+    return;
+  }
+
+  const currentBalance = expert? (expert.balance || 0) : 0;
+  if (amount > currentBalance) {
+    showToast("آپ کی مطلوبہ رقم آپ کے دستیاب بیلنس سے زیادہ ہے۔", "error");
+    return;
+  }
+
+  try {
+    await addDoc(collection(db, "payoutRequests"), {
+      expertId: activeExpertId,
+      expertName: expert? expert.name : "نامعلوم ماہر",
+      method,
+      account,
+      amount,
+      status: "pending",
+      requestedAt: new Date().toISOString()
+    });
+
+    const newBalance = currentBalance - amount;
+    await updateExpertDoc(activeExpertId, { balance: newBalance });
+
+    showToast("رقم نکلوانے کی درخواست ایڈمن کو بھیج دی گئی ہے!", "success");
+    document.getElementById("payoutFormArea").style.display = "none";
+    document.getElementById("poAccount").value = "";
+    document.getElementById("poAmount").value = "";
+  } catch (err) {
+    showToast("خرابی: " + err.message, "error");
+  }
+};
+
+function renderChatList() {
+  const div = document.getElementById("chatList");
+  if (expertChatsCache.length === 0) {
+    div.innerHTML = '<div class="empty-state">ابھی کوئی کسٹمر کا پیغام نہیں ہے۔</div>';
+    return;
+  }
+  div.innerHTML = expertChatsCache.map(c => `
+    <div class="list-item" style="cursor:pointer;" data-open-chat="${c.customerId}">
+      <div><b>${c.customerId}</b><br><span class="expert-meta">آخری اپ ڈیٹ: ${new Date(c.updatedAt).toLocaleString('ur-PK')}</span></div>
+      <span class="pill ${activeChatCustomerId === c.customerId? 'approved' : 'pending'}">${activeChatCustomerId === c.customerId? 'کھلا ہے' : 'دیکھیں'}</span>
+    </div>
+  `).join("");
+  div.querySelectorAll("[data-open-chat]").forEach(el => {
+    el.onclick = () => openChatThread(el.dataset.openChat);
+  });
+}
+
+function openChatThread(customerId) {
+  activeChatCustomerId = customerId;
+  document.getElementById("chatPanel").style.display = "block";
+  document.getElementById("activeCustomerLabel").textContent = customerId;
+  renderChatList();
+
+  const qDiv = document.getElementById("expQuickReplies");
+  qDiv.innerHTML = EXPERT_QUICK_REPLIES.map(q => `<button class="btn btn-sm btn-outline" data-quick="${q.replace(/"/g, '&quot;')}">${q}</button>`).join("");
+  qDiv.querySelectorAll("[data-quick]").forEach(btn => {
+    btn.onclick = () => sendExpertMessage(btn.dataset.quick);
+  });
+
+  if (chatMsgUnsub) chatMsgUnsub();
+  chatMsgUnsub = listenChatMessages(activeExpertId, customerId, (messages) => {
+    const log = document.getElementById("expChatLog");
+    if (messages.length === 0) {
+      log.innerHTML = '<div class="empty-state">ابھی کوئی پیغام نہیں۔</div>';
+      return;
+    }
+    log.innerHTML = messages.map(m => `
+      <div class="msg ${m.sender === 'expert'? 'me' : 'them'}">${m.text}</div>
+    `).join("");
+    log.scrollTop = log.scrollHeight;
+  });
+}
+
+async function sendExpertMessage(text) {
+  if (!text ||!activeChatCustomerId ||!activeExpertId) return;
+  const expert = expertsCache.find(e => e.id === activeExpertId);
+  try {
+    await sendChatMessage(activeExpertId, activeChatCustomerId, expert? expert.name : "", "expert", text, activeExpertId);
+  } catch (err) {
+    showToast(err.message, "error");
+  }
+}
+
+document.getElementById("btnExpSend").onclick = async () => {
+  const input = document.getElementById("expChatInput");
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = "";
+  await sendExpertMessage(text);
+};
+
+function subscribeExpertChats() {
+  if (!activeExpertId) return;
+  listenExpertChats(activeExpertId, (list) => {
+    expertChatsCache = list;
+    renderChatList();
+  });
+}
+
+function renderDashboard() {  if (!activeExpertId) return;
+  const expert = expertsCache.find(e => e.id === activeExpertId);
+  document.getElementById("dashWelcome").textContent = "خوش آمدید، " + (expert? expert.name : "");
+  document.getElementById("dashSub").textContent = expert? `${expert.city} · ${expert.specialty}` : "";
+  document.getElementById("expertBalanceDisplay").textContent = `روپے ${expert? (expert.balance || 0) : 0}`;
+
+  const activeBooking = getActiveBookingForExpert(activeExpertId, bookingsCache);
+  const availDiv = document.getElementById("myAvailabilityPill");
+  availDiv.innerHTML = activeBooking
+   ? `<span class="pill pending">فی الحال مصروف — ${activeBooking.id}</span>`
+    : `<span class="pill approved">نئی بکنگ کے لیے دستیاب</span>`;
+
+  document.getElementById("statGrid").innerHTML = `
+    <div class="stat-card"><div class="num">${expert? expert.jobs : 0}</div><div class="lbl">مکمل شدہ جابز</div></div>
+    <div class="stat-card"><div class="num">${expert? expert.rating : "—"} ★</div><div class="lbl">اوسط ریٹنگ</div></div>
+    <div class="stat-card"><div class="num" id="incomingCount">0</div><div class="lbl">نئی درخواستیں</div></div>
+  `;
+
+  const myBookings = bookingsCache.filter(b => b.expertId === activeExpertId);
+  document.getElementById("incomingCount").textContent = myBookings.length;
+  const list = document.getElementById("requestsList");
+  if (myBookings.length === 0) {
+    list.innerHTML = '<div class="empty-state">ابھی کوئی نئی بکنگ کی درخواست نہیں ہے۔</div>';
+  } else {
+    list.innerHTML = myBookings.slice().reverse().map(b => {
+      const needsOtp = b.jobStatus === "accepted" &&!b.escrowReleased;
+      return `
+      <div class="list-item">
+        <div>
+          <b>${b.id}</b><br>
+          <span class="expert-meta">روپے ${b.amount} · ${new Date(b.date).toLocaleString('ur-PK')}</span><br>
+          <span class="pill ${b.paymentStatus === 'verified'? 'approved' : 'pending'}">${b.paymentStatus === 'verified'? 'رقم موصول ہو گئی' : 'رقم کی تصدیق باقی ہے'}</span>
+          ${b.jobStatus? `<span class="pill ${b.jobStatus === 'declined'? 'rejected' : 'approved'}">${b.jobStatus === 'accepted'? 'قبول کر لیا گیا' : b.jobStatus === 'completed'? 'مکمل ہو گیا' : 'مسترد کر دیا گیا'}</span>` : ''}
+          ${b.escrowReleased? '<span class="pill approved">رقم جاری کر دی گئی</span>' : ''}
+          ${needsOtp? `
+            <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+              <input type="text" maxlength="4" placeholder="4 ہندسوں کا کوڈ" style="width:110px; padding:8px 10px;" data-otp-input="${b.id}">
+              <button class="btn btn-sm btn-success" data-verify-otp="${b.id}">تصدیق کریں اور رقم حاصل کریں</button>
+            </div>
+          ` : ''}
+        </div>
+        <div style="display:flex; gap:8px;">
+          ${b.jobStatus? '' : `
+            <button class="btn btn-sm btn-success" data-accept="${b.id}">قبول کریں</button>
+            <button class="btn btn-sm btn-outline" data-decline="${b.id}">مسترد کریں</button>
+          `}
+        </div>
+      </div>
+    `}).join("");
+
+    list.querySelectorAll("[data-accept]").forEach(btn => {
+      btn.onclick = async () => {
+        const otp = genOtp();
+        await updateBookingDoc(btn.dataset.accept, { jobStatus: "accepted", completionOtp: otp });
+        showToast("جاب قبول کر لیا گیا۔ گاہک کو ان کی 'میری بکنگز' میں تکمیل کا کوڈ دکھائی دے رہا ہے۔", "success");
+      };
+    });
+
+    list.querySelectorAll("[data-decline]").forEach(btn => {
+      btn.onclick = () => updateBookingDoc(btn.dataset.decline, { jobStatus: "declined" });
+    });
+
+    list.querySelectorAll("[data-verify-otp]").forEach(btn => {
+      btn.onclick = async () => {
+        const bookingId = btn.dataset.verifyOtp;
+        const input = list.querySelector(`[data-otp-input="${bookingId}"]`);
+        const entered = input.value.trim();
+        const booking = bookingsCache.find(b => b.id === bookingId);
+
+        if (!entered) { showToast("پہلے گاہک سے او ٹی پی لے کر لکھیں۔", "error"); return; }
+        if (!booking || entered !== booking.completionOtp) {
+          showToast("او ٹی پی غلط ہے۔ گاہک سے دوبارہ تصدیق کریں۔", "error");
+          return;
+        }
+
+        await updateBookingDoc(bookingId, { jobStatus: "completed", escrowReleased: true });
+
+        const jobAmount = Number(booking.amount) || 0;
+        const currentBalance = expert ? (expert.balance || 0) : 0;
+        const currentJobs = expert ? (expert.jobs || 0) : 0;
+
+        await updateExpertDoc(activeExpertId, {
+          balance: currentBalance + jobAmount,
+          jobs: currentJobs + 1
+        });
+
+        showToast("کام مکمل — رقم آپ کے بٹوے کے بیلنس میں شامل ہو گئی!", "success");
+      };
+    });
+  }
+}
+
+(function init() {
+  const appId = localStorage.getItem("electraman_my_application_id");
+  showView(appId ? "underReviewView" : "entryView");
+})();
+</script>
+</body>
+</html>
